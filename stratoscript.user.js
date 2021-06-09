@@ -66,6 +66,10 @@
         if ( path.startsWith( "/messagerie" ) || path.startsWith( "/index.php/messagerie" ) ) {
             ajoutBoutonQuitterMPs();
         }
+        // MP
+        if ( path.startsWith( "/messagerie/" ) || path.startsWith( "/index.php/messagerie/" ) ) {
+            correctionCitationsMP();
+        }
     }
 
     /* ==========================================================
@@ -128,12 +132,11 @@
             modifPosts( doc );
             $( ".btn-autorefresh-posts" ).removeClass( "processing" );
 
-            let html_liste_posts = $( ".topic-messages", doc ).html();
-			let html_pages = $( ".pagination-topic", doc ).html();
             // Afficher les posts et la pagination
+            let html_liste_posts = $( ".topic-messages", doc ).html();
+            let html_pages = $( ".pagination-topic", doc ).html();
             $( ".topic-messages" ).html( html_liste_posts );
-			$( ".pagination-topic" ).html( html_pages );
-
+            $( ".pagination-topic" ).html( html_pages );
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations();
         } else {
@@ -148,11 +151,11 @@
                 modifPosts( doc );
                 $( ".btn-autorefresh-posts" ).removeClass( "processing" );
 
-                let html_liste_posts = $( ".topic-messages", doc ).html();
-				let html_pages = $( ".pagination-topic", doc ).html();
                 // Afficher les posts et la pagination
+                let html_liste_posts = $( ".topic-messages", doc ).html();
+                let html_pages = $( ".pagination-topic", doc ).html();
                 $( ".topic-messages" ).html( html_liste_posts );
-				$( ".pagination-topic" ).html( html_pages );
+                $( ".pagination-topic" ).html( html_pages );
 
                 // Lecteurs Vocaroo, IssouTV, Webm etc...
                 ajoutLecteursEtIntegrations();
@@ -505,6 +508,17 @@
         await fetch( form.action, {
             method: "POST",
             body: new FormData( form )
+        } );
+    }
+
+    /////////////////////
+    //  Interface - MP  |
+    /////////////////////
+
+    // Correction des citations
+    function correctionCitationsMP() {
+        $( '.message-quote' ).each( function () {
+            $( this ).attr( 'href', $( this ).attr( 'href' ).replace( 'topic', 'messagerie' ) );
         } );
     }
 
