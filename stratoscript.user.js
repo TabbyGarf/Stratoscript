@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.42
+// @version      0.43
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -14,10 +14,12 @@
 ( function () {
     'use strict';
     var path = window.location.pathname;
-
+    var indexPhp = '';
+    if ( path.match( /\/index\.php\// ) ) {
+        indexPhp = 'index.php/';
+    }
     var parametres = {};
     var blacklist_pseudos = [];
-
     var theme_noir = true;
 
     /* ==========================================================
@@ -279,7 +281,7 @@
             if ( parametres[ "sw-posts-url" ] == true && url.match( /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/ ) ) {
                 // Récupérer le post
                 let id_post = /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/.exec( url )[ 3 ];
-                let url_post = 'https://avenoel.org/message/' + id_post;
+                let url_post = 'https://avenoel.org/' + indexPhp + 'message/' + id_post;
                 let doc_post = await getDoc( url_post );
                 // Créer le post
                 let postIntegre;
@@ -463,7 +465,7 @@
             page = /\/forum\/([0-9]+)/.exec( path )[ 1 ];
         }
         // Récupérer la liste des topics à la bonne page
-        let url_page = "https://avenoel.org/forum/" + page
+        let url_page = "https://avenoel.org/" + indexPhp + "forum/" + page
         let doc = await getDoc( url_page );
         // Modifier le contenu (blacklist...)
         modifListeTopics( doc );
@@ -698,7 +700,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.42';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.43';
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
