@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.39
+// @version      0.41
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
+// @run-at       document-start
 // @grant        none
 // ==/UserScript==
 
@@ -12,16 +13,12 @@
 
 ( function () {
     'use strict';
-    var $ = window.jQuery;
     var path = window.location.pathname;
 
     var parametres = {};
     var blacklist_pseudos = [];
 
-    var theme_noir = false;
-    if ( $( "body" ).css( "background-color" ) == "rgb(32, 34, 37)" ) {
-        theme_noir = true;
-    }
+    var theme_noir = true;
 
     /* ==========================================================
     |                                                           |
@@ -29,7 +26,7 @@
     |                                                           |
     ========================================================== */
 
-    async function initialisation() {
+    function initialisation_preshot() {
         parametres = localStorage_chargement( "ss_parametres" );
         blacklist_pseudos = localStorage_chargement( "ss_blacklist_pseudos" );
 
@@ -39,17 +36,40 @@
             if ( parametres[ "sw-masquer-inutile" ] == true ) {
                 virerTrucsAbandonnes();
             }
+        }
+        // TOPIC
+        if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
+            // Modifier le contenu (blacklist...)
+            modifPosts( document );
+        }
+        // LISTE DES TOPICS
+        if ( path.startsWith( "/forum" ) || path.startsWith( "/index.php/forum" ) ) {
+            // Modifier le contenu (blacklist...)
+            modifListeTopics( document );
+        }
+    }
+
+    async function initialisation() {
+        // Script Tweeter
+        if ( parametres[ "sw-twitter" ] == true ) {
+            var s = document.createElement( "script" );
+            s.type = "text/javascript";
+            s.src = "https://platform.twitter.com/widgets.js";
+            s.async = true;
+            document.head.append( s );
+        }
+
+        // TOUTES LES PAGES, SAUF LE PANNEL ADMIN
+        if ( !path.startsWith( "/admin" ) ) {
             // Créer le pannel de config du script
             creerPannelStratoscript();
             // Ouvrir l'onglet général par défaut
-            $( ".onglet-general" ).click();
+            document.getElementById( 'onglet-general' ).click();
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations();
         }
         // TOPIC
         if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
-            // Modifier le contenu (blacklist...)
-            modifPosts();
             if ( parametres[ "sw-refresh-posts" ] == true ) {
                 ajoutAutorefreshPosts();
             }
@@ -59,16 +79,16 @@
             if ( parametres[ "sw-refresh-topics" ] == true ) {
                 ajoutAutorefreshTopics();
             }
-            // Modifier le contenu (blacklist...)
-            modifListeTopics();
-        }
-        // LISTE DES MPS
-        if ( path.startsWith( "/messagerie" ) || path.startsWith( "/index.php/messagerie" ) ) {
-            ajoutBoutonQuitterMPs();
         }
         // MP
         if ( path.startsWith( "/messagerie/" ) || path.startsWith( "/index.php/messagerie/" ) ) {
-            correctionCitationsMP();
+            //
+        } else if ( path.startsWith( "/messagerie" ) || path.startsWith( "/index.php/messagerie" ) ) {
+            // LISTE DES MPS
+            if ( parametres[ "sw-btn-quitter-mp" ] == true ) {
+                ajoutBoutonQuitterMPs();
+            }
+
         }
     }
 
@@ -114,172 +134,200 @@
     //  Interface - Topic  |
     ////////////////////////
 
+    async function refreshPosts() {
+        // Animation refresh
+        document.querySelectorAll( '#btn-autorefresh-posts' ).forEach( function ( e ) {
+            e.classList.add( "processing" );
+        } );
+        // Récupérer la liste des posts
+        let url_topic = "https://avenoel.org" + path;
+        let doc = await getDoc( url_topic );
+        // Modifier le contenu (blacklist, etc..)
+        modifPosts( doc );
+        // Stoper l'animation refresh
+        document.querySelectorAll( '#btn-autorefresh-posts' ).forEach( function ( e ) {
+            e.classList.remove( "processing" );
+        } );
+
+        // Affichage des posts
+        document.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        doc.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
+            document.querySelector( '.topic-messages' ).appendChild( e )
+        } );
+        // Affichage de la pagination
+        document.querySelectorAll( '.pagination-topic > li' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        doc.querySelectorAll( '.pagination-topic' )[ 0 ].querySelectorAll( 'li' ).forEach( function ( e ) {
+            document.querySelectorAll( '.pagination-topic' )[ 0 ].appendChild( e );
+        } );
+        doc.querySelectorAll( '.pagination-topic' )[ 1 ].querySelectorAll( 'li' ).forEach( function ( e ) {
+            document.querySelectorAll( '.pagination-topic' )[ 1 ].appendChild( e );
+        } );
+
+        // Lecteurs Vocaroo, IssouTV, Webm etc...
+        ajoutLecteursEtIntegrations();
+        // Spoilers
+        ajoutSpoilers();
+    }
+
     // Refresh et autorefresh
     async function autorefreshPosts( auto ) {
-        // Récupération de la page
-        let page = "";
-        if ( path.match( /\/forum\/([0-9]+)/ ) ) {
-            page = /\/forum\/([0-9]+)/.exec( path )[ 1 ];
-        }
-
-        // Simple refresh
         if ( auto == 0 ) {
-            // Récupérer la liste des posts
-            $( ".btn-autorefresh-posts" ).addClass( "processing" );
-            let url_topic = "https://avenoel.org" + path;
-            let doc = await getDoc( url_topic );
-            // Modifier le contenu (blacklist...)
-            modifPosts( doc );
-            $( ".btn-autorefresh-posts" ).removeClass( "processing" );
-
-            // Afficher les posts et la pagination
-            let html_liste_posts = $( ".topic-messages", doc ).html();
-            let html_pages = $( ".pagination-topic", doc ).html();
-            $( ".topic-messages" ).html( html_liste_posts );
-            $( ".pagination-topic" ).html( html_pages );
-            // Lecteurs Vocaroo, IssouTV, Webm etc...
-            ajoutLecteursEtIntegrations();
+            // Simple refresh
+            await refreshPosts();
         } else {
             // Boucle d'autorefresh
-            while ( $( ".btn-autorefresh-posts" ).hasClass( "btn-success" ) ) {
-
-                // Récupérer la liste des posts
-                $( ".btn-autorefresh-posts" ).addClass( "processing" );
-                let url_topic = "https://avenoel.org" + path;
-                let doc = await getDoc( url_topic );
-                // Modifier le contenu (blacklist...)
-                modifPosts( doc );
-                $( ".btn-autorefresh-posts" ).removeClass( "processing" );
-
-                // Afficher les posts et la pagination
-                let html_liste_posts = $( ".topic-messages", doc ).html();
-                let html_pages = $( ".pagination-topic", doc ).html();
-                $( ".topic-messages" ).html( html_liste_posts );
-                $( ".pagination-topic" ).html( html_pages );
-
-                // Lecteurs Vocaroo, IssouTV, Webm etc...
-                ajoutLecteursEtIntegrations();
-
+            while ( document.querySelector( '.btn-autorefresh-posts' ).classList.contains( 'btn-success' ) ) {
+                await refreshPosts();
                 await sleep( 500 );
             }
         }
     }
 
-    // Ajout de l'autorefresh sur la liste des topics
+    // Ajout de l'autorefresh sur les posts
     function ajoutAutorefreshPosts() {
-        // Ajout du bouton d'autorefresh
-        $( ".grey-btn[data-refresh*='.main-section']" ).after( "<a class='btn-autorefresh-posts btn grey-btn' style='font-size: .9em'><i class='glyphicon glyphicon-refresh'></i></a><a style='width:3px;display:inline-block'></a>" );
-        // Suppression du bouton refresh de base
-        $( ".grey-btn[data-refresh*='.main-section']" ).remove();
+        // Ajout du bouton d'autorefresh et suppression du bouton refresh normal
+        document.querySelectorAll( ".grey-btn[data-refresh*='.main-section']" ).forEach( function ( e ) {
+            let boutonRefresh = document.createElement( 'a' );
+            boutonRefresh.setAttribute( "id", "btn-autorefresh-posts" );
+            boutonRefresh.setAttribute( "class", "btn-autorefresh-posts btn grey-btn" );
+            boutonRefresh.setAttribute( "style", "font-size: .9em" );
+            boutonRefresh.innerHTML = "<i class='glyphicon glyphicon-refresh'></i>";
 
-        // Event - Simple clic sur le bouton refresh
-        $( ".btn-autorefresh-posts" ).click( function () {
-            // Si on clique sur le bouton pour couper l'auto-refresh...
-            if ( !$( ".btn-autorefresh-posts" ).hasClass( "grey-btn" ) ) {
-                $( ".btn-autorefresh-posts" ).addClass( "grey-btn" );
-                $( ".btn-autorefresh-posts" ).removeClass( "btn-success" );
-            } else {
-                autorefreshPosts( 0 );
-            }
+            e.parentNode.insertBefore( boutonRefresh, e );
+            e.remove();
         } );
-
-        // Event - Double clic sur le bouton refresh
-        $( ".btn-autorefresh-posts" ).dblclick( function () {
-            // Si on double-clique sur le bouton pour allumer l'auto-refresh...
-            if ( $( ".btn-autorefresh-posts" ).hasClass( "grey-btn" ) ) {
-                $( ".btn-autorefresh-posts" ).addClass( "btn-success" );
-                $( ".btn-autorefresh-posts" ).removeClass( "grey-btn" );
-                autorefreshPosts( 1 );
+        // Evenements
+        let boutonsAutorefresh = document.querySelectorAll( "#btn-autorefresh-posts" );
+        boutonsAutorefresh.forEach( function ( e ) {
+            e.onclick = function () {
+                // Si on clique sur le bouton pour couper l'auto-refresh...
+                if ( !e.classList.contains( 'grey-btn' ) ) {
+                    boutonsAutorefresh.forEach( function ( btn ) {
+                        btn.classList.add( 'grey-btn' );
+                        btn.classList.remove( 'btn-success' );
+                    } );
+                } else {
+                    autorefreshPosts( 0 );
+                }
+            }
+            e.ondblclick = function () {
+                // Si on double-clique sur le bouton pour allumer l'auto-refresh...
+                if ( e.classList.contains( 'grey-btn' ) ) {
+                    boutonsAutorefresh.forEach( function ( btn ) {
+                        btn.classList.add( 'btn-success' );
+                        btn.classList.remove( 'grey-btn' );
+                    } );
+                    autorefreshPosts( 1 );
+                }
             }
         } );
     }
 
-    // Modif sur les posts
+    // Modifications exclusives à la liste des posts d'un topic
     async function modifPosts( page ) {
         let niveau_blocage = 2;
         if ( parametres[ "rg-blacklist-forumeurs" ] != null && parametres[ "rg-blacklist-forumeurs" ] != '' ) {
             niveau_blocage = parametres[ "rg-blacklist-forumeurs" ];
         }
-
         // Parcourir tous les messages du topic
-        $( ".topic-messages", page ).children().each( async function ( i ) {
+        page.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
             // Appliquer la blacklist de pseudos
-            let pseudo = $( this ).find( ".message-username" ).text().replace( /(\r\n|\n|\r)/gm, "" );
+            let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
+
             if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
                 if ( niveau_blocage == 1 ) {
-                    $( this ).find( ".message-content" ).text( " [ Contenu blacklisté ] " );
-                    $( this ).css( "background-color", "rgba(247,24,24,.2)" );
+                    e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
+                    e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
                 } else if ( niveau_blocage == 2 ) {
-                    $( this ).html( '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>' );
-                    $( this ).css( "background-color", "rgba(247,24,24,.2)" );
+                    e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
+                    e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
                 } else if ( niveau_blocage == 3 ) {
-                    $( this ).remove();
+                    e.remove();
                 }
             }
-            // Citations
-            if ( niveau_blocage == 2 ) {
-                $( this ).find( ".message-content" ).find( '.message-content-quote-author:contains("' + pseudo + '")' ).parent().parent().text( " [ Contenu blacklisté ] " );
-            } else if ( niveau_blocage == 3 ) {
-                $( this ).find( ".message-content" ).find( '.message-content-quote-author:contains("' + pseudo + '")' ).parent().remove();
-            }
         } );
+
         // Parcourir toutes les citations du topic
-        $( "blockquote", page ).each( async function ( i ) {
+        page.querySelectorAll( 'blockquote' ).forEach( function ( e ) {
             // Appliquer la blacklist de pseudos
-            let pseudo = $( this ).find( ".message-content-quote-caption" ).children().text().replace( /(\r\n|\n|\r)/gm, "" );
+            if ( e.querySelector( '.message-content-quote-author' ) ) {
+                let pseudo = e.querySelector( '.message-content-quote-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
 
-            if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
-                if ( niveau_blocage == 2 ) {
-                    $( this ).text( " [ Contenu blacklisté ] " );
-                } else if ( niveau_blocage == 3 ) {
-                    $( this ).parent().parent().parent().remove();
+                if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
+                    if ( niveau_blocage == 2 ) {
+                        e.textContent = " [ Contenu blacklisté ] ";
+                    } else if ( niveau_blocage == 3 ) {
+                        e.parentNode.parentNode.parentNode.remove();
+                    }
                 }
             }
         } );
-
-        return page;
     }
 
     // Intégrations
     function ajoutLecteursEtIntegrations() {
         // Trouver tous les URLs dans les posts
-        $( ".message-content" ).find( "a" ).each( async function ( i ) {
+        document.querySelectorAll( '.message-content a' ).forEach( async function ( e ) {
+
+            let url = e.getAttribute( 'href' );
 
             // Posts d'AVN
-            if ( parametres[ "sw-posts-url" ] == true && $( this ).attr( "href" ).match( /(https:\/\/avenoel\.org\/message\/([0-9]+))/ ) ) {
-                // Récupérer et adapter le post
-                let url_post = /(https:\/\/avenoel\.org\/message\/([0-9]+))/.exec( $( this ).attr( "href" ) )[ 1 ];
+            if ( parametres[ "sw-posts-url" ] == true && url.match( /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/ ) ) {
+                // Récupérer le post
+                let id_post = /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/.exec( url )[ 3 ];
+                let url_post = 'https://avenoel.org/message/' + id_post;
                 let doc_post = await getDoc( url_post );
-                let odd = "";
-                if ( !$( this ).parent().parent().parent().parent().hasClass( "odd" ) ) {
-                    odd = "odd";
-                }
-                let html_post = "" + '<div class="topic-message  ' + odd + '" style="margin:10px">' + $( "article", doc_post ).html() + "<div>";
+                // Créer le post
+                let postIntegre;
+                if ( doc_post.querySelector( '.topic-message' ) != null ) {
+                    postIntegre = doc_post.querySelector( '.topic-message' ).cloneNode( true );
+                    postIntegre.setAttribute( "style", "margin:10px" );
+                    // Gérer la couleur du post
+                    if ( !e.parentNode.parentNode.parentNode.parentNode.classList.contains( 'odd' ) ) {
+                        postIntegre.setAttribute( "class", "row topic-message odd" );
+                    } else if ( e.parentNode.parentNode.parentNode.parentNode.classList.contains( 'odd' ) ) {
+                        postIntegre.setAttribute( "class", "row topic-message" );
+                    }
 
+                } else {
+                    postIntegre = document.createElement( "div" );
+                    postIntegre.setAttribute( "class", "topic-message message-deleted" );
+                    postIntegre.setAttribute( "style", "margin:10px; padding:5px; display: flex;align-items: center;justify-content: center;" );
+                    postIntegre.textContent = 'Message introuvable';
+                }
                 // Ajouter le post
-                $( this ).parent().after( html_post );
-                // Supprimer le lien
-                $( this ).parent().remove();
+                e.parentNode.parentNode.insertBefore( postIntegre, e.parentNode );
+                // Supprimer le lien et un <br> en dessous
+                e.parentNode.nextSibling.remove();
+                e.parentNode.remove();
             }
 
             // Vocaroo
-            if ( parametres[ "sw-vocaroo" ] == true && $( this ).attr( "href" ).match( /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/ ) ) {
+            if ( parametres[ "sw-vocaroo" ] == true && url.match( /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/ ) ) {
                 // Créer le lecteur
-                let id_vocaroo = /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/.exec( $( this ).attr( "href" ) )[ 2 ];
-                let htmlVocaroo = '<iframe width="300" height="60" src="https://vocaroo.com/embed/' + id_vocaroo + '?autoplay=0" frameborder="0" allow="autoplay"></iframe>';
-                $( this ).parent().after( htmlVocaroo );
-                // Supprimer le lien
-                $( this ).parent().remove();
+                let lecteurVocaroo = document.createElement( "iframe" );
+                let id_vocaroo = /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/.exec( url )[ 2 ];
+                lecteurVocaroo.setAttribute( "width", "300" );
+                lecteurVocaroo.setAttribute( "height", "60" );
+                lecteurVocaroo.setAttribute( "src", "https://vocaroo.com/embed/" + id_vocaroo + "?autoplay=0" );
+                lecteurVocaroo.setAttribute( "frameborder", "0" );
+                lecteurVocaroo.setAttribute( "allow", "autoplay" );
+                // Ramplacer le lien par le lecteur
+                e.parentNode.parentNode.replaceChild( lecteurVocaroo, e.parentNode );
             }
 
             // IssouTV
-            if ( parametres[ "sw-issoutv" ] == true && $( this ).attr( "href" ).match( /(https:\/\/(issoutv\.com)(.+)\/(.+))/ ) ) {
+            if ( parametres[ "sw-issoutv" ] == true && url.match( /(https:\/\/(issoutv\.com)(.+)\/(.+))/ ) ) {
                 // Gérer l'URL IssouTV
                 let path_video = "https://issoutv.com/storage/videos/";
-                let id_video = /(https:\/\/(issoutv\.com)(.+)\/(.+))/.exec( $( this ).attr( "href" ) )[ 4 ];
+                let id_video = /(https:\/\/(issoutv\.com)(.+)\/(.+))/.exec( url )[ 4 ];
                 let url_video = path_video + id_video;
-                if ( id_video.substring( id_video.length - 4, id_video.length ) != ".mp4" ) {
-                    url_video += ".mp4";
+                if ( !url_video.match( /.+\.mp4|.+\.webm/ ) ) {
+                    url_video += ".webm";
                 }
                 // Créer le lecteur
                 let video = document.createElement( "video" );
@@ -289,23 +337,24 @@
                 video.setAttribute( "height", "214" );
                 video.setAttribute( "preload", "metadata" );
                 video.setAttribute( "style", "background-color: black" );
-
-                $( this ).parent().after( video );
-                // Supprimer le lien
-                $( this ).parent().remove();
+                // Ramplacer le lien par le lecteur
+                e.parentNode.parentNode.replaceChild( video, e.parentNode );
                 // En cas de 404, afficher un 404 Larry, cliquable et menant vers le lien mort
                 video.onerror = function () {
-                    let html404 = '<a href="' + url_video + '"><img src="https://i.imgur.com/nfy6qFK.jpg"</a>';
-                    $( this ).after( html404 );
-                    $( this ).remove();
+                    let lien404 = document.createElement( "a" );
+                    lien404.setAttribute( "href", url );
+                    let image404 = document.createElement( "img" );
+                    image404.setAttribute( "src", "https://i.imgur.com/nfy6qFK.jpg" );
+                    lien404.appendChild( image404 );
+                    // Remplacer la video par le lien
+                    video.parentNode.replaceChild( lien404, video );
                 }
 
             } else {
-
                 // .WEBM et .MP4
-                if ( parametres[ "sw-mp4-webm" ] == true && $( this ).attr( "href" ).match( /(https:\/\/(.+)(\.mp4|\.webm))/ ) ) {
+                if ( parametres[ "sw-mp4-webm" ] == true && url.match( /(https:\/\/(.+)(\.mp4|\.webm))/ ) ) {
                     // Gérer l'URL
-                    let url_video = /(https:\/\/(.+)(\.mp4|\.webm))/.exec( $( this ).attr( "href" ) )[ 1 ];
+                    let url_video = /(https:\/\/(.+)(\.mp4|\.webm))/.exec( url )[ 1 ];
                     // Créer le lecteur
                     let video = document.createElement( "video" );
                     video.setAttribute( "src", url_video + "#t=0.1" );
@@ -314,47 +363,89 @@
                     video.setAttribute( "height", "214" );
                     video.setAttribute( "preload", "metadata" );
                     video.setAttribute( "style", "background-color: black" );
-
-                    $( this ).parent().after( video );
-                    // Supprimer le lien
-                    $( this ).parent().remove();
+                    // Ramplacer le lien par le lecteur
+                    e.parentNode.parentNode.replaceChild( video, e.parentNode );
                     // En cas de 404, afficher un 404 Larry, cliquable et menant vers le lien mort
                     video.onerror = function () {
-                        let html404 = '<a href="' + url_video + '"><img src="https://i.imgur.com/nfy6qFK.jpg"</a>';
-                        $( this ).after( html404 );
-                        $( this ).remove();
+                        let lien404 = document.createElement( "a" );
+                        lien404.setAttribute( "href", url );
+                        let image404 = document.createElement( "img" );
+                        image404.setAttribute( "src", "https://i.imgur.com/nfy6qFK.jpg" );
+                        lien404.appendChild( image404 );
+                        // Remplacer la video par le lien
+                        video.parentNode.replaceChild( lien404, video );
                     }
                 }
             }
 
             // Twitter
-            if ( parametres[ "sw-twitter" ] == true && $( this ).attr( "href" ).match( /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/ ) ) {
-                let htmlTweet = "";
-                let id_compte = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( $( this ).attr( "href" ) )[ 2 ];
-                let id_tweet = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( $( this ).attr( "href" ) )[ 3 ];
+            if ( parametres[ "sw-twitter" ] == true && url.match( /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/ ) ) {
+                let htmlTweet;
+                let id_compte = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 2 ];
+                let id_tweet = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 3 ];
                 await $.ajax( {
                     type: "GET",
                     url: "https://publish.twitter.com/oembed?url=https://twitter.com/" + id_compte + "/status/" + id_tweet,
                     dataType: "jsonp",
                     success: function ( retour ) {
                         htmlTweet = retour.html;
+                        // Ramplacer le lien par le tweet
+                        e.parentNode.parentNode.innerHTML = htmlTweet;
                     }
                 } );
-                // Ajouter le tweet
-                $( this ).parent().after( htmlTweet );
-                // Supprimer le lien
-                $( this ).parent().remove();
             }
 
             // PornHub
-            if ( parametres[ "sw-pornhub" ] == true && $( this ).attr( "href" ).match( /(https:\/\/fr\.pornhub\.com\/view_video\.php\?viewkey=(.{15}))/ ) ) {
-                // Récupérer l'ID de la video et récupérer le lecteur
-                let id_video = /(https:\/\/fr\.pornhub\.com\/view_video\.php\?viewkey=(.{15}))/.exec( $( this ).attr( "href" ) )[ 2 ];
-                let htmlPornHub = '<iframe src="https://www.pornhub.com/embed/' + id_video + '" frameborder="0" width="380" height="214" scrolling="no" allowfullscreen></iframe>';
+            if ( parametres[ "sw-pornhub" ] == true && url.match( /(https:\/\/fr\.pornhub\.com\/view_video\.php\?viewkey=(.{15}))/ ) ) {
+                // Créer le lecteur
+                let lecteurPornHub = document.createElement( "iframe" );
+                let id_video = /(https:\/\/fr\.pornhub\.com\/view_video\.php\?viewkey=(.{15}))/.exec( url )[ 2 ];
+                lecteurPornHub.setAttribute( "width", "380" );
+                lecteurPornHub.setAttribute( "height", "214" );
+                lecteurPornHub.setAttribute( "src", "https://www.pornhub.com/embed/" + id_video );
+                lecteurPornHub.setAttribute( "frameborder", "0" );
+                lecteurPornHub.setAttribute( "allowfullscreen", "" );
                 // Ajouter le lecteur
-                $( this ).parent().after( htmlPornHub );
+                e.parentNode.parentNode.insertBefore( lecteurPornHub, e.parentNode );
                 // Supprimer le lien
-                $( this ).parent().remove();
+                e.parentNode.remove();
+            }
+        } );
+    }
+
+    // Spoilers
+    function ajoutSpoilers() {
+        // Parcourir et préparer les spoilers
+        document.querySelectorAll( 'spoiler' ).forEach( function ( e ) {
+            e.setAttribute( "class", "spoiler" );
+            // Contenu du spoiler
+            let contenu = e.cloneNode( true );
+            contenu.setAttribute( "class", "spoiler-content" );
+            contenu.style.display = 'none';
+            // Vider
+            while ( e.firstChild ) {
+                e.removeChild( e.firstChild );
+            }
+            // Bouton du spoiler
+            let bouton = document.createElement( 'div' );
+            bouton.setAttribute( "class", "spoiler-btn" );
+            bouton.textContent = '[Afficher]';
+
+            e.appendChild( bouton );
+            e.appendChild( contenu );
+        } );
+
+        // Parcourir les boutons spoilers
+        document.querySelectorAll( ".spoiler-btn" ).forEach( function ( e ) {
+            // Event - Clic sur un spoiler...
+            e.onclick = function () {
+                if ( e.textContent == '[Afficher]' ) {
+                    e.textContent = '[Cacher]';
+                    e.nextSibling.style.display = 'block';
+                } else {
+                    e.textContent = '[Afficher]';
+                    e.nextSibling.style.display = 'none';
+                }
             }
         } );
     }
@@ -363,40 +454,39 @@
     //  Interface - Liste des topics  |
     ///////////////////////////////////
 
-    // Refresh et autorefresh
-    async function autorefreshTopics( auto ) {
+    async function refreshTopics() {
+        // Animation refresh
+        document.querySelector( '.btn-autorefresh-topics' ).classList.add( 'processing' );
         // Récupération de la page
         let page = "";
         if ( path.match( /\/forum\/([0-9]+)/ ) ) {
             page = /\/forum\/([0-9]+)/.exec( path )[ 1 ];
         }
+        // Récupérer la liste des topics à la bonne page
+        let url_page = "https://avenoel.org/forum/" + page
+        let doc = await getDoc( url_page );
+        // Modifier le contenu (blacklist...)
+        modifListeTopics( doc );
+        // Stoper l'animation refresh
+        document.querySelector( '.btn-autorefresh-topics' ).classList.remove( 'processing' );
+        // Afficher les topics
+        document.querySelectorAll( '.topics > tbody > tr' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        doc.querySelectorAll( '.topics > tbody > tr' ).forEach( function ( e ) {
+            document.querySelector( '.topics > tbody' ).appendChild( e )
+        } );
+    }
 
+    // Refresh et autorefresh
+    async function autorefreshTopics( auto ) {
         if ( auto == 0 ) {
             // SIMPLE REFRESH
-            // Récupérer la liste des topics
-            $( ".btn-autorefresh-topics" ).addClass( "processing" );
-            let doc = await getDoc( "https://avenoel.org/forum/" + page );
-            // Modifier le contenu (blacklist...)
-            modifListeTopics( doc );
-            $( ".btn-autorefresh-topics" ).removeClass( "processing" );
-
-            let html_liste_topics = $( ".topics", doc ).html();
-            // Afficher les topics
-            $( ".topics" ).html( html_liste_topics );
+            await refreshTopics();
         } else {
             // BOUCLE D'AUTOREFRESH
-            while ( $( ".btn-autorefresh-topics" ).hasClass( "btn-success" ) ) {
-                // Récupérer la liste des topics
-                $( ".btn-autorefresh-topics" ).addClass( "processing" );
-                let doc = await getDoc( "https://avenoel.org/forum/" + page );
-                // Modifier le contenu (blacklist...)
-                modifListeTopics( doc );
-                $( ".btn-autorefresh-topics" ).removeClass( "processing" );
-
-                let html_liste_topics = $( ".topics", doc ).html();
-                // Afficher les topics
-                $( ".topics" ).html( html_liste_topics );
-
+            while ( document.querySelector( '.btn-autorefresh-topics' ).classList.contains( 'btn-success' ) ) {
+                await refreshTopics();
                 await sleep( 500 );
             }
         }
@@ -404,28 +494,24 @@
 
     // Modif de la liste des topics
     function modifListeTopics( page ) {
-        let fond = "lightgrey";
-        if ( theme_noir ) {
-            fond = "#404040";
-        }
+
         let niveau_blocage = 2;
         if ( parametres[ "rg-blacklist-forumeurs" ] != null && parametres[ "rg-blacklist-forumeurs" ] != '' ) {
             niveau_blocage = parametres[ "rg-blacklist-forumeurs" ];
         }
         // Parcourir les topics de la liste des topics
-        $( ".table", page ).last().children().last().children().each( async function ( i ) {
+        page.querySelectorAll( '.topics > tbody > tr' ).forEach( ( e ) => {
             // Appliquer la blacklist de pseudos
-            let pseudo = $( this ).find( ".topics-author" ).text().replace( /(\r\n|\n|\r)/gm, "" );
+            let pseudo = e.querySelector( '.topics-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
+
             if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
                 if ( niveau_blocage == 1 ) {
-                    $( this ).find( ".topics-title" ).text( " [ Contenu blacklisté ] " );
-                    //$( this ).find( '.topics-title' ).css( "background-color", fond );
+                    e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
                 } else if ( niveau_blocage == 2 ) {
-                    $( this ).find( "td" ).html( "" );
-                    $( this ).find( ".topics-title" ).text( " [ Contenu blacklisté ] " );
-                    //$( this ).css( "background-color",  fond );
+                    e.innerHTML = '';
+                    e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
                 } else if ( niveau_blocage == 3 ) {
-                    $( this ).remove();
+                    e.remove();
                 }
             }
         } );
@@ -433,32 +519,34 @@
 
     // Ajout de l'autorefresh sur la liste des topics
     function ajoutAutorefreshTopics() {
-        // Suppression du bouton refresh de base
-        $( ".grey-btn[href*='https://avenoel.org/forum']" ).remove();
-        $( ".grey-btn[href*='https://avenoel.org/index.php/forum']" ).remove();
-        // Ajout du bouton d'autorefresh
-        $( ".right-tools" ).prepend( "<a class='btn-autorefresh-topics btn grey-btn' style='font-size: .9em'><i class='glyphicon glyphicon-refresh'></i></a><a style='width:3px;display:inline-block'></a>" );
+        // Ajout du bouton d'autorefresh et suppression du bouton refresh normal
+        let boutonRefresh = document.createElement( 'a' );
+        boutonRefresh.setAttribute( 'id', 'btn-autorefresh-topics' );
+        boutonRefresh.setAttribute( 'class', 'btn-autorefresh-topics btn grey-btn' );
+        boutonRefresh.setAttribute( 'style', 'font-size: .9em' );
+        boutonRefresh.innerHTML = "<i class='glyphicon glyphicon-refresh'></i>";
+        let ancienBtnRefresh = document.querySelector( ".grey-btn[data-refresh*='.topics']" );
+        ancienBtnRefresh.parentNode.replaceChild( boutonRefresh, ancienBtnRefresh );
 
         // Event - Simple clic sur le bouton refresh
-        $( ".btn-autorefresh-topics" ).click( function () {
+        boutonRefresh.onclick = function () {
             // Si on clique sur le bouton pour couper l'auto-refresh...
-            if ( !$( ".btn-autorefresh-topics" ).hasClass( "grey-btn" ) ) {
-                $( ".btn-autorefresh-topics" ).addClass( "grey-btn" );
-                $( ".btn-autorefresh-topics" ).removeClass( "btn-success" );
+            if ( !boutonRefresh.classList.contains( 'grey-btn' ) ) {
+                boutonRefresh.classList.add( 'grey-btn' );
+                boutonRefresh.classList.remove( 'btn-success' );
             } else {
                 autorefreshTopics( 0 );
             }
-        } );
-
+        }
         // Event - Double clic sur le bouton refresh
-        $( ".btn-autorefresh-topics" ).dblclick( function () {
+        boutonRefresh.ondblclick = function () {
             // Si on double-clique sur le bouton pour allumer l'auto-refresh...
-            if ( $( ".btn-autorefresh-topics" ).hasClass( "grey-btn" ) ) {
-                $( ".btn-autorefresh-topics" ).addClass( "btn-success" );
-                $( ".btn-autorefresh-topics" ).removeClass( "grey-btn" );
+            if ( boutonRefresh.classList.contains( 'grey-btn' ) ) {
+                boutonRefresh.classList.add( 'btn-success' );
+                boutonRefresh.classList.remove( 'grey-btn' );
                 autorefreshTopics( 1 );
             }
-        } );
+        }
     }
 
     ////////////////////////////////
@@ -466,35 +554,26 @@
     ////////////////////////////////
 
     function ajoutBoutonQuitterMPs() {
-        $( ".table" ).last().children().first().children().prepend( "<th></th>" );
-        $( ".table" ).last().children().first().children().append( "<th></th>" );
-        $( ".table" ).last().children().last().children().each( async function ( i ) {
+        let th = document.createElement( 'th' );
+        // En-tête
+        document.querySelector( "section > table > thead > tr" ).appendChild( th );
+        // Tableau
+        document.querySelectorAll( "section > table > tbody > tr" ).forEach( ( e ) => {
+            let td = document.createElement( 'td' );
             // Ajout du bouton "Quitter le MP" sur chaque MP dans la liste des MPs
-            if ( parametres[ "sw-btn-quitter-mp" ] == true ) {
-                let html = "<td>" + '<input style="vertical-align: middle" class="btn-quitter-mp" type="image" src="/images/topic/delete.png" title="Quitter le MP" alt="Icône suppression" height="16">' + "</td>";
-                $( this ).append( html );
-            } else {
-                $( this ).append( "<td></td>" );
-            }
+            td.innerHTML = '<input style="vertical-align: middle" class="btn-quitter-mp" type="image" src="/images/topic/delete.png" title="Quitter le MP" alt="Icône suppression" height="16">';
+            e.appendChild( td );
 
-            // Afficher les auteurs carton
-            if ( $( this ).children().first().next().text() == "Rezabe75" && parametres[ "sw-afficher-cartons-mp" ] == true ) {
-                $( this ).prepend( '<span style="vertical-align: middle;color:red; margin-right:5px;margin-left:10px" title="MP à risque ; l\'auteur de ce MP est rang carton" class="glyphicon glyphicon-warning-sign"></span>' );
-                $( this ).css( "border", "1px solid red" );
-            } else {
-                $( this ).prepend( "<td></td>" );
-            }
-        } );
-
-        // Event - Clic sur le pour quitter un MP
-        $( ".btn-quitter-mp" ).click( async function () {
-            if ( confirm( "Voulez-vous vraiment quitter ce MP ?" ) ) {
-                // Extraction du numéro de MP
-                var id_mp = /https:\/\/avenoel\.org\/messagerie\/([0-9]+)/.exec( $( this ).parent().parent().children().children().first().attr( "href" ) )[ 1 ];
-                // Quitter le MP
-                await quitterMP( id_mp );
-                location.reload();
-            }
+            // Event - Clic sur le bouton pour quitter un MP
+            td.querySelector( 'input' ).onclick = async function () {
+                if ( confirm( "Voulez-vous vraiment quitter ce MP ?" ) ) {
+                    // Extraction du numéro de MP
+                    var id_mp = /https:\/\/avenoel\.org\/messagerie\/([0-9]+)/.exec( td.parentNode.querySelector( '.title a' ) )[ 1 ];
+                    // Quitter le MP
+                    await quitterMP( id_mp );
+                    location.reload();
+                }
+            };
         } );
     }
 
@@ -511,28 +590,24 @@
         } );
     }
 
-    /////////////////////
-    //  Interface - MP  |
-    /////////////////////
-
-    // Correction des citations
-    function correctionCitationsMP() {
-        $( '.message-quote' ).each( function () {
-            $( this ).attr( 'href', $( this ).attr( 'href' ).replace( 'topic', 'messagerie' ) );
-        } );
-    }
-
     ///////////////////////////////////
     //  Interface - Toutes les pages  |
     ///////////////////////////////////
 
     // Mise à jour de la blacklist personnelle des pseudos sur le pannel
     function majPannel_BlacklistPseudos() {
-        $( ".table-blacklist-forumeurs" ).children().last().html( "" );
-
-        // Parcourir la blacklist
+        // Vider le tableau
+        document.querySelectorAll( '#table-blacklist-forumeurs > tbody > tr' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        // Parcourir la blacklist et remplir le tableau
+        let corpsTableau = document.getElementById( 'table-blacklist-forumeurs' ).getElementsByTagName( 'tbody' )[ 0 ];
         for ( let i = 0; i < blacklist_pseudos.length; ++i ) {
-            $( ".table-blacklist-forumeurs" ).children().last().append( '<tr> <th><span class="glyphicon glyphicon-user"></span></th> <td>' + blacklist_pseudos[ i ] + "</td></tr>" );
+            let row = corpsTableau.insertRow( 0 );
+            let cell1 = row.insertCell( 0 );
+            let cell2 = row.insertCell( 1 );
+            cell1.innerHTML = '<span class="glyphicon glyphicon-user"></span>';
+            cell2.textContent = blacklist_pseudos[ i ];
         }
     }
 
@@ -540,38 +615,46 @@
     function majPannel_Parametres() {
         console.log( parametres );
         // Toutes les pages
-        $( ".sw-twitter" ).find( "input" ).prop( "checked", parametres[ "sw-twitter" ] );
-        $( ".sw-issoutv" ).find( "input" ).prop( "checked", parametres[ "sw-issoutv" ] );
-        $( ".sw-vocaroo" ).find( "input" ).prop( "checked", parametres[ "sw-vocaroo" ] );
-        $( ".sw-pornhub" ).find( "input" ).prop( "checked", parametres[ "sw-pornhub" ] );
-        $( ".sw-mp4-webm" ).find( "input" ).prop( "checked", parametres[ "sw-mp4-webm" ] );
-        $( ".sw-masquer-inutile" ).find( "input" ).prop( "checked", parametres[ "sw-masquer-inutile" ] );
-        $( ".sw-posts-url" ).find( "input" ).prop( "checked", parametres[ "sw-posts-url" ] );
+        document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked = parametres[ "sw-twitter" ];
+        document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked = parametres[ "sw-issoutv" ];
+        document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked = parametres[ "sw-vocaroo" ];
+        document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked = parametres[ "sw-pornhub" ];
+        document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked = parametres[ "sw-mp4-webm" ];
+        document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked = parametres[ "sw-masquer-inutile" ];
+        document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked = parametres[ "sw-posts-url" ];
         // Liste des topics
-        $( ".sw-refresh-topics" ).find( "input" ).prop( "checked", parametres[ "sw-refresh-topics" ] );
+        document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-topics" ];
         // Topic
-        $( ".sw-refresh-posts" ).find( "input" ).prop( "checked", parametres[ "sw-refresh-posts" ] );
+        document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-posts" ];
         // Liste des MPs
-        $( ".sw-btn-quitter-mp" ).find( "input" ).prop( "checked", parametres[ "sw-btn-quitter-mp" ] );
+        document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked = parametres[ "sw-btn-quitter-mp" ];
         // Blacklist forumeurs
-        $( ".rg-blacklist-forumeurs" ).val( parametres[ "rg-blacklist-forumeurs" ] );
+        document.getElementById( 'rg-blacklist-forumeurs' ).value = parametres[ "rg-blacklist-forumeurs" ];
     }
 
     // Virer les trucs abandonnés sur l'interface
     function virerTrucsAbandonnes() {
         // Trucs de NoelRadio
-        $( ".aside" ).find( "img" ).remove();
-        $( "audio" ).remove();
-        $( 'a:contains("Avenoel Radio")' ).parent().remove();
+        document.querySelectorAll( '.aside img' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        document.querySelectorAll( 'audio' ).forEach( function ( e ) {
+            e.remove();
+        } );
+        document.querySelectorAll( '.aside li' )[ 2 ].remove();
     }
 
     // Créer le pannel de configuration du script
     function creerPannelStratoscript() {
         // Ajouter la zone du pannel de configuration du script dans la page
-        $( ".main-container" ).prepend( '<div id="stratoscriptPanel"></div>' );
+        let zonePannel = document.createElement( 'div' );
+        zonePannel.setAttribute( "id", "stratoscriptPanel" );
+        document.querySelector( '.main-container' ).appendChild( zonePannel );
 
         // Ajouter le bouton du script dans la barre de navigation
-        $( ".navbar-links" ).append( '<li><a style="height:70px;width:145px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></a></li>' );
+        let boutonScript = document.createElement( 'li' );
+        boutonScript.innerHTML = '<a style="height:70px;width:145px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></a>';
+        document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
         let cssSliders
         if ( theme_noir ) {
@@ -580,7 +663,7 @@
             cssSliders = '<style type="text/css">/* The switch - the box around the slider */.switch {position: relative;display: inline-block;width: 60px;height: 34px;}/* Hide default HTML checkbox */.switch input {opacity: 0;width: 0;height: 0;}/* The slider */.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: "";height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #fdde02;}input:focus + .slider {box-shadow: 0 0 1px #fdde02;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}/* Rounded sliders */.slider.round {border-radius: 34px;}.slider.round:before {border-radius: 50%;}</style>';
         }
 
-        let pannelHTML = '<div class="modal fade" id="modalStratoscript" tabindex="-1" role="dialog" aria-labelledby="modalStratoscriptLabel">     <div class="modal-dialog modal-lg" role="document">    <div class="modal-content">      <div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);">     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>     <h4 class="modal-title" id="modalStratoscriptLabel"><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4>      </div>      <div class="modal-body stratoscriptPanel" style="overflow-y:scroll;max-height:75vh">      <div class="row">        <div class="col-md-12">        <ul class="nav nav-tabs onglets">         <li class="onglet-general"><a>Général</a></li>         <li class="onglet-blacklist"><a>Blacklist</a></li>        </ul>       </div>       </div>      <div class="zones-container row">       <!-- ONGLET GENERAL -->       <div class="zone-general col-md-12">        <div class="col-md-12">          <div class="panel-heading"><h3>Général</h3></div>          <!-- TOUTES LES PAGES -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Ensemble du forum</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-twitter" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Tweeter</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-issoutv" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration IssouTV</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-vocaroo" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Vocaroo</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-pornhub" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration PornHub</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-mp4-webm" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration mp4 et webm</div>             </div>            </div>           </div>            <br>            <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-masquer-inutile" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Masquer les trucs inutiles</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-posts-url" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Affichage des posts par URL</div>             </div>            </div>           </div>           </div>          <div class="panel-footer">           <button class="btn grey-btn btn-validation-parametres" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES TOPICS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des topics</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-refresh-topics" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button class="btn grey-btn btn-validation-parametres" type="button">Valider</button>          </div>         </div>         <!-- TOPIC -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Topic</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-refresh-posts" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button class="btn grey-btn btn-validation-parametres" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES MPS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des MPs</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label class="switch sw-btn-quitter-mp" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Bouton de sortie de MP</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button class="btn grey-btn btn-validation-parametres" type="button">Valider</button>          </div>         </div>         </div>       </div>        <!-- ONGLET BLACKLIST -->       <div class="zone-blacklist col-md-12">         <div class="col-md-12">         <div class="panel-heading"><h3>Blacklist de forumeurs</h3></div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12">            <h4>Niveau de blocage</h4>            <br>            <div class="col-xs-4" style="text-align:left"><p>Faible</p></div><div class="col-xs-4" style="text-align:center"><p>Moyen</p></div><div class="col-xs-4" style="text-align:right"><p>Elevé</p></div>            <input type="range" class="rg-blacklist-forumeurs" min="1" max="3">           </div>          </div>         </div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12"><h4>Liste des forumeurs bloqués</h4></div>           <div class="col-md-8" style="max-height:260px;overflow:auto;">            <table class="table table-condensed table-blacklist-forumeurs">             <thead>              <tr class="">               <th style="width:40px">#</th>               <th>Pseudo</th>              </tr>             </thead>             <tbody></tbody>            </table>           </div>           <div class="col-md-4">            <div class="col-md-12"><h5>Blacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span class="input-group-btn btn_blacklist_forumeurs_ajout">               <button class="btn btn-success" type="button" style="height:36px"><span class="glyphicon glyphicon-plus"></span></button>              </span>             </div>            </div>            <div class="col-md-12"><h5>Déblacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span class="input-group-btn btn_blacklist_forumeurs_suppr">               <button class="btn btn-danger" type="button" style="height:36px"><span class="glyphicon glyphicon-remove"></span></button>              </span>             </div>             <br>            </div>           </div>          </div>         </div>        </div>       </div>      </div>       </div>      <div class="modal-footer">     <p class="pull-left versionScript" style="margin-top:8px; margin-bottom:0px">Version --</p>     <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button>      </div>    </div>     </div>   </div>';
+        let pannelHTML = '<div class="modal fade" id="modalStratoscript" tabindex="-1" role="dialog" aria-labelledby="modalStratoscriptLabel">     <div class="modal-dialog modal-lg" role="document">    <div class="modal-content">      <div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);">     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>     <h4 class="modal-title" id="modalStratoscriptLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4>      </div>      <div id="stratoscriptPanel" class="modal-body" style="overflow-y:scroll;max-height:75vh">      <div class="row">        <div class="col-md-12">        <ul id="onglets" class="nav nav-tabs onglets">         <li id="onglet-general"><a>Général</a></li>         <li id="onglet-blacklist"><a>Blacklist</a></li>        </ul>       </div>       </div>      <div id="zones-container" class="zones-container row">       <!-- ONGLET GENERAL -->       <div id="zone-general" class="col-md-12">        <div class="col-md-12">          <div class="panel-heading"><h3>Général</h3></div>          <!-- TOUTES LES PAGES -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Ensemble du forum</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-twitter" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Tweeter</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-issoutv" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration IssouTV</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-vocaroo" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Vocaroo</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-pornhub" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration PornHub</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-mp4-webm" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration mp4 et webm</div>             </div>            </div>           </div>            <br>            <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-masquer-inutile" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Masquer les trucs inutiles</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-posts-url" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Affichage des posts par URL</div>             </div>            </div>           </div>           </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES TOPICS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des topics</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-refresh-topics" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- TOPIC -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Topic</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-refresh-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES MPS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des MPs</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-btn-quitter-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Bouton de sortie de MP</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         </div>       </div>        <!-- ONGLET BLACKLIST -->       <div id="zone-blacklist" class="col-md-12">         <div class="col-md-12">         <div class="panel-heading"><h3>Blacklist de forumeurs</h3></div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12">            <h4>Niveau de blocage</h4>            <br>            <div class="col-xs-4" style="text-align:left"><p>Faible</p></div><div class="col-xs-4" style="text-align:center"><p>Moyen</p></div><div class="col-xs-4" style="text-align:right"><p>Elevé</p></div>            <input type="range" id="rg-blacklist-forumeurs" min="1" max="3">           </div>          </div>         </div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12"><h4>Liste des forumeurs bloqués</h4></div>           <div class="col-md-8" style="max-height:260px;overflow:auto;">            <table id="table-blacklist-forumeurs" class="table table-condensed">             <thead>              <tr class="">               <th style="width:40px">#</th>               <th>Pseudo</th>              </tr>             </thead>             <tbody></tbody>            </table>           </div>           <div class="col-md-4">            <div class="col-md-12"><h5>Blacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span id="btn_blacklist_forumeurs_ajout" class="input-group-btn">               <button class="btn btn-success" type="button" style="height:36px"><span class="glyphicon glyphicon-plus"></span></button>              </span>             </div>            </div>            <div class="col-md-12"><h5>Déblacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span id="btn_blacklist_forumeurs_suppr" class="input-group-btn">               <button class="btn btn-danger" type="button" style="height:36px"><span class="glyphicon glyphicon-remove"></span></button>              </span>             </div>             <br>            </div>           </div>          </div>         </div>        </div>       </div>      </div>       </div>      <div class="modal-footer">     <p id="versionScript" class="pull-left versionScript" style="margin-top:8px; margin-bottom:0px">Version -</p>     <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button>      </div>    </div>     </div>   </div>';
 
         // Si le thème noir est actif, l'appliquer sur le pannel
         if ( theme_noir ) {
@@ -609,34 +692,33 @@
 
         pannelHTML += cssSliders;
 
-        $( "#stratoscriptPanel" ).html( pannelHTML );
+        document.getElementById( 'stratoscriptPanel' ).innerHTML = pannelHTML;
 
         majPannel_BlacklistPseudos();
         majPannel_Parametres();
 
         // Affichage de la version
-        $( ".versionScript" ).html( "Version 0.39" );
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.41';
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
         //////////////////////////////////
 
         // Event - Blacklist pseudos : Changement du niveau de blocage
-        $( ".rg-blacklist-forumeurs" ).change( function () {
-            let niveau_blacklist_pseudos = $( this ).val();
+        document.getElementById( 'rg-blacklist-forumeurs' ).onchange = function () {
+            let niveau_blacklist_pseudos = document.getElementById( 'rg-blacklist-forumeurs' ).value;
             // Enregistrer dans les parametres
             parametres[ "rg-blacklist-forumeurs" ] = niveau_blacklist_pseudos;
             // Mettre à jour le LocalStorage
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
 
             console.log( "Niveau de blocage : " + niveau_blacklist_pseudos );
-
             // Recharger la page
             location.reload();
-        } );
+        }
         // Event - Blacklist pseudos : Clic bouton d'ajout
-        $( ".btn_blacklist_forumeurs_ajout" ).click( function () {
-            let pseudo = $( this ).parent().children().first().val();
+        document.getElementById( 'btn_blacklist_forumeurs_ajout' ).onclick = function () {
+            let pseudo = document.getElementById( 'btn_blacklist_forumeurs_ajout' ).previousElementSibling.value
 
             // Ajouter le pseudo à la liste
             localStorage_ajout( pseudo, blacklist_pseudos, "ss_blacklist_pseudos" );
@@ -647,10 +729,10 @@
 
             // Recharger la page
             location.reload();
-        } );
+        }
         // Event - Blacklist pseudos : Clic bouton de suppression
-        $( ".btn_blacklist_forumeurs_suppr" ).click( function () {
-            let pseudo = $( this ).parent().children().first().val();
+        document.getElementById( 'btn_blacklist_forumeurs_suppr' ).onclick = function () {
+            let pseudo = document.getElementById( 'btn_blacklist_forumeurs_suppr' ).previousElementSibling.value;
 
             localStorage_suppression( pseudo, blacklist_pseudos, "ss_blacklist_pseudos" );
             majPannel_BlacklistPseudos();
@@ -660,55 +742,67 @@
 
             // Recharger la page
             location.reload();
-        } );
+        }
 
         ////////////////////////
         //  BOUTONS - ONGLETS  |
         ////////////////////////
 
         // Event - Clic sur l'onglet Général
-        $( ".onglet-general" ).click( function () {
-            $( ".onglets" ).children().removeClass( "active" );
-            $( ".onglet-general" ).addClass( "active" );
-            $( ".zones-container" ).children().hide();
-            $( ".zone-general" ).show();
-        } );
+        document.getElementById( 'onglet-general' ).onclick = function () {
+            // Onglets
+            document.querySelectorAll( '.onglets > li' ).forEach( function ( e ) {
+                e.classList.remove( 'active' );
+            } )
+            document.getElementById( 'onglet-general' ).classList.add( 'active' );
+            // Zones
+            document.querySelectorAll( '#zones-container > div' ).forEach( function ( e ) {
+                e.style.display = 'none';
+            } );
+            document.getElementById( 'zone-general' ).style.display = 'block';
+        }
         // Event - Clic sur l'onglet Blacklist
-        $( ".onglet-blacklist" ).click( function () {
-            $( ".onglets" ).children().removeClass( "active" );
-            $( ".onglet-blacklist" ).addClass( "active" );
-            $( ".zones-container" ).children().hide();
-            $( ".zone-blacklist" ).show();
-        } );
+        document.getElementById( 'onglet-blacklist' ).onclick = function () {
+            // Onglets
+            document.querySelectorAll( '.onglets > li' ).forEach( function ( e ) {
+                e.classList.remove( 'active' );
+            } )
+            document.getElementById( 'onglet-blacklist' ).classList.add( 'active' );
+            // Zones
+            document.querySelectorAll( '#zones-container > div' ).forEach( function ( e ) {
+                e.style.display = 'none';
+            } );
+            document.getElementById( 'zone-blacklist' ).style.display = 'block';
+        }
 
         ///////////////////////////////////
         //  BOUTONS - PARAMETRES AVANCES  |
         ///////////////////////////////////
 
         // Event - Clic sur le bouton de validation des paramètres
-        $( ".btn-validation-parametres" ).click( function () {
+        document.getElementById( 'btn-validation-parametres' ).onclick = function () {
             parametres = {};
             // Toutes les pages
-            parametres[ "sw-twitter" ] = $( ".sw-twitter" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-issoutv" ] = $( ".sw-issoutv" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-vocaroo" ] = $( ".sw-vocaroo" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-pornhub" ] = $( ".sw-pornhub" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-mp4-webm" ] = $( ".sw-mp4-webm" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-masquer-inutile" ] = $( ".sw-masquer-inutile" ).find( "input" ).prop( "checked" );
-            parametres[ "sw-posts-url" ] = $( ".sw-posts-url" ).find( "input" ).prop( "checked" );
+            parametres[ "sw-twitter" ] = document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked;
+            parametres[ "sw-issoutv" ] = document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked;
+            parametres[ "sw-vocaroo" ] = document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked;
+            parametres[ "sw-pornhub" ] = document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked;
+            parametres[ "sw-mp4-webm" ] = document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked;
+            parametres[ "sw-masquer-inutile" ] = document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked;
+            parametres[ "sw-posts-url" ] = document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked;
             // Liste des topics
-            parametres[ "sw-refresh-topics" ] = $( ".sw-refresh-topics" ).find( "input" ).prop( "checked" );
+            parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
             // Topic
-            parametres[ "sw-refresh-posts" ] = $( ".sw-refresh-posts" ).find( "input" ).prop( "checked" );
+            parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
             // Liste des MPs
-            parametres[ "sw-btn-quitter-mp" ] = $( ".sw-btn-quitter-mp" ).find( "input" ).prop( "checked" );
+            parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
             // Blacklist forumeurs
-            parametres[ "rg-blacklist-forumeurs" ] = $( ".rg-blacklist-forumeurs" ).val();
+            parametres[ "rg-blacklist-forumeurs" ] = document.getElementById( 'rg-blacklist-forumeurs' ).value;
             // Mettre à jour le LocalStorage
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
             // Recharger la page
             location.reload();
-        } );
+        };
     }
 
     // Déplacement vers le haut et le bas de la page
@@ -750,6 +844,12 @@
         return liste;
     }
 
-    initialisation();
-    console.log( "Stratoscript démarré !" );
+    // initialisation sans attendre le chargement complet
+    initialisation_preshot();
+    // Initialisation après chargement complet
+    window.onload = function () {
+        initialisation();
+        console.log( "Stratoscript démarré !" );
+    };
+
 } )();
