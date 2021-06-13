@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.41
+// @version      0.42
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -698,7 +698,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.41';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.42';
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
@@ -775,34 +775,36 @@
             document.getElementById( 'zone-blacklist' ).style.display = 'block';
         }
 
-        ///////////////////////////////////
-        //  BOUTONS - PARAMETRES AVANCES  |
-        ///////////////////////////////////
+        ///////////////////////////
+        //  BOUTONS - PARAMETRES  |
+        ///////////////////////////
 
         // Event - Clic sur le bouton de validation des paramètres
-        document.getElementById( 'btn-validation-parametres' ).onclick = function () {
-            parametres = {};
-            // Toutes les pages
-            parametres[ "sw-twitter" ] = document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked;
-            parametres[ "sw-issoutv" ] = document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked;
-            parametres[ "sw-vocaroo" ] = document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked;
-            parametres[ "sw-pornhub" ] = document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked;
-            parametres[ "sw-mp4-webm" ] = document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked;
-            parametres[ "sw-masquer-inutile" ] = document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked;
-            parametres[ "sw-posts-url" ] = document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked;
-            // Liste des topics
-            parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
-            // Topic
-            parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
-            // Liste des MPs
-            parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
-            // Blacklist forumeurs
-            parametres[ "rg-blacklist-forumeurs" ] = document.getElementById( 'rg-blacklist-forumeurs' ).value;
-            // Mettre à jour le LocalStorage
-            localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
-            // Recharger la page
-            location.reload();
-        };
+        document.querySelectorAll( '#btn-validation-parametres' ).forEach( function ( e ) {
+            e.onclick = function () {
+                parametres = {};
+                // Toutes les pages
+                parametres[ "sw-twitter" ] = document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked;
+                parametres[ "sw-issoutv" ] = document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked;
+                parametres[ "sw-vocaroo" ] = document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked;
+                parametres[ "sw-pornhub" ] = document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked;
+                parametres[ "sw-mp4-webm" ] = document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked;
+                parametres[ "sw-masquer-inutile" ] = document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked;
+                parametres[ "sw-posts-url" ] = document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked;
+                // Liste des topics
+                parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
+                // Topic
+                parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
+                // Liste des MPs
+                parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
+                // Blacklist forumeurs
+                parametres[ "rg-blacklist-forumeurs" ] = document.getElementById( 'rg-blacklist-forumeurs' ).value;
+                // Mettre à jour le LocalStorage
+                localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
+                // Recharger la page
+                location.reload();
+            };
+        } );
     }
 
     // Déplacement vers le haut et le bas de la page
