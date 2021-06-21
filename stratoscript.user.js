@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.43
+// @version      0.44
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -29,11 +29,16 @@
     ========================================================== */
 
     function initialisation_preshot() {
+        console.log( "Démarrage du Stratoscript..." );
         parametres = localStorage_chargement( "ss_parametres" );
         blacklist_pseudos = localStorage_chargement( "ss_blacklist_pseudos" );
 
         // TOUTES LES PAGES, SAUF LE PANNEL ADMIN
         if ( !path.startsWith( "/admin" ) ) {
+            // Ajouter la zone du pannel de configuration du script dans la page
+            let zonePannel = document.createElement( 'div' );
+            zonePannel.setAttribute( "id", "stratoscriptPanel" );
+            document.querySelector( '.main-container' ).appendChild( zonePannel );
             // Virer de l'interface les éléments à l'abandon
             if ( parametres[ "sw-masquer-inutile" ] == true ) {
                 virerTrucsAbandonnes();
@@ -648,11 +653,6 @@
 
     // Créer le pannel de configuration du script
     function creerPannelStratoscript() {
-        // Ajouter la zone du pannel de configuration du script dans la page
-        let zonePannel = document.createElement( 'div' );
-        zonePannel.setAttribute( "id", "stratoscriptPanel" );
-        document.querySelector( '.main-container' ).appendChild( zonePannel );
-
         // Ajouter le bouton du script dans la barre de navigation
         let boutonScript = document.createElement( 'li' );
         boutonScript.innerHTML = '<a style="height:70px;width:145px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></a>';
@@ -847,6 +847,10 @@
 
         return liste;
     }
+
+    ////////////////////
+    // INITIALISATION  |
+    ////////////////////
 
     // initialisation sans attendre le chargement complet
     initialisation_preshot();
