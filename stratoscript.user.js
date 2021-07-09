@@ -515,8 +515,7 @@
                 if ( niveau_blocage == 1 ) {
                     e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
                 } else if ( niveau_blocage == 2 ) {
-                    e.innerHTML = '';
-                    e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
+                    e.innerHTML = '<td></td><td class="topics-title">[ Contenu blacklisté ]</td><td></td><td></td><td></td>';
                 } else if ( niveau_blocage == 3 ) {
                     e.remove();
                 }
