@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.44
+// @version      0.45
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
-// @run-at       document-start
+// @run-at       document-body
 // @grant        none
 // ==/UserScript==
 
@@ -699,7 +699,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.43';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.45';
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
