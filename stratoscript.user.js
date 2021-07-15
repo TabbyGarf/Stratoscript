@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.45
+// @version      0.46
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -39,8 +39,8 @@
             let zonePannel = document.createElement( 'div' );
             zonePannel.setAttribute( "id", "stratoscriptPanel" );
             document.querySelector( '.main-container' ).appendChild( zonePannel );
-            // Virer de l'interface les éléments à l'abandon
-            if ( parametres[ "sw-masquer-inutile" ] == true ) {
+            // Virer de l'interface les éléments à l'abandon (sauf sur le profil)
+            if ( parametres[ "sw-masquer-inutile" ] == true && !path.startsWith( "/profil" ) ) {
                 virerTrucsAbandonnes();
             }
         }
@@ -185,11 +185,23 @@
         if ( auto == 0 ) {
             // Simple refresh
             await refreshPosts();
+            // Mettre en page les éventuels tweets si l'option est activée
+            if ( parametres[ "sw-twitter" ] == true ) {
+                await sleep( 500 );
+                // Mettre en page les éventuels tweets si l'option est activée
+                if ( parametres[ "sw-twitter" ] == true ) {
+                    twttr.widgets.load();
+                }
+            }
         } else {
             // Boucle d'autorefresh
             while ( document.querySelector( '.btn-autorefresh-posts' ).classList.contains( 'btn-success' ) ) {
                 await refreshPosts();
                 await sleep( 500 );
+                // Mettre en page les éventuels tweets si l'option est activée
+                if ( parametres[ "sw-twitter" ] == true ) {
+                    twttr.widgets.load();
+                }
             }
         }
     }
@@ -397,7 +409,7 @@
                     success: function ( retour ) {
                         htmlTweet = retour.html;
                         // Ramplacer le lien par le tweet
-                        e.parentNode.parentNode.innerHTML = htmlTweet;
+                        e.parentNode.innerHTML = htmlTweet;
                     }
                 } );
             }
@@ -538,6 +550,9 @@
         boutonRefresh.onclick = function () {
             // Si on clique sur le bouton pour couper l'auto-refresh...
             if ( !boutonRefresh.classList.contains( 'grey-btn' ) ) {
+                // Mémoriser l'état
+
+                // Couper l'autorefresh
                 boutonRefresh.classList.add( 'grey-btn' );
                 boutonRefresh.classList.remove( 'btn-success' );
             } else {
@@ -548,6 +563,9 @@
         boutonRefresh.ondblclick = function () {
             // Si on double-clique sur le bouton pour allumer l'auto-refresh...
             if ( boutonRefresh.classList.contains( 'grey-btn' ) ) {
+                // Mémoriser l'état
+
+                // Allumer autorefresh
                 boutonRefresh.classList.add( 'btn-success' );
                 boutonRefresh.classList.remove( 'grey-btn' );
                 autorefreshTopics( 1 );
@@ -699,7 +717,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.45';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.46';
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
