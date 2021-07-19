@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.46
+// @version      0.47
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -70,8 +70,6 @@
         if ( !path.startsWith( "/admin" ) ) {
             // Créer le pannel de config du script
             creerPannelStratoscript();
-            // Ouvrir l'onglet général par défaut
-            document.getElementById( 'onglet-general' ).click();
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations();
         }
@@ -321,7 +319,6 @@
                 // Ajouter le post
                 e.parentNode.parentNode.insertBefore( postIntegre, e.parentNode );
                 // Supprimer le lien et un <br> en dessous
-                e.parentNode.nextSibling.remove();
                 e.parentNode.remove();
             }
 
@@ -551,7 +548,8 @@
             // Si on clique sur le bouton pour couper l'auto-refresh...
             if ( !boutonRefresh.classList.contains( 'grey-btn' ) ) {
                 // Mémoriser l'état
-
+                parametres[ "etat_autorefresh_topics" ] = false;
+                localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Couper l'autorefresh
                 boutonRefresh.classList.add( 'grey-btn' );
                 boutonRefresh.classList.remove( 'btn-success' );
@@ -564,12 +562,18 @@
             // Si on double-clique sur le bouton pour allumer l'auto-refresh...
             if ( boutonRefresh.classList.contains( 'grey-btn' ) ) {
                 // Mémoriser l'état
-
+                parametres[ "etat_autorefresh_topics" ] = true;
+                localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Allumer autorefresh
                 boutonRefresh.classList.add( 'btn-success' );
                 boutonRefresh.classList.remove( 'grey-btn' );
                 autorefreshTopics( 1 );
             }
+        }
+
+        // Activation auto de l'autorefresh, si déjà activé sur la page précédente
+        if ( parametres[ "etat_autorefresh_topics" ] == true ) {
+            boutonRefresh.ondblclick();
         }
     }
 
@@ -717,14 +721,29 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.46';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.47';
+
+        //////////////
+        //  BOUTONS  |
+        //////////////
+
+        // Event - Ouverture du pannel
+        document.querySelector( '.btnStratoscript' ).onclick = function () {
+            if ( parametres.onglet_actif != null && parametres.onglet_actif != '' ) {
+                // Ouvrir le dernier onglet ouvert
+                document.getElementById( parametres.onglet_actif + '' ).click();
+            } else {
+                // Ouvrir l'onglet général par défaut
+                document.getElementById( 'onglet-general' ).click();
+            }
+        }
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
         //////////////////////////////////
 
         // Event - Blacklist pseudos : Changement du niveau de blocage
-        document.getElementById( 'rg-blacklist-forumeurs' ).onchange = function () {
+        document.getElementById( 'rg-blacklist-forumeurs' ).onclick = function () {
             let niveau_blacklist_pseudos = document.getElementById( 'rg-blacklist-forumeurs' ).value;
             // Enregistrer dans les parametres
             parametres[ "rg-blacklist-forumeurs" ] = niveau_blacklist_pseudos;
@@ -779,6 +798,10 @@
                 e.style.display = 'none';
             } );
             document.getElementById( 'zone-general' ).style.display = 'block';
+
+            // Mémoriser l'onglet actif
+            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '#onglets .active' ).id;
+            localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
         }
         // Event - Clic sur l'onglet Blacklist
         document.getElementById( 'onglet-blacklist' ).onclick = function () {
@@ -792,6 +815,10 @@
                 e.style.display = 'none';
             } );
             document.getElementById( 'zone-blacklist' ).style.display = 'block';
+
+            // Mémoriser l'onglet actif
+            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '#onglets .active' ).id;
+            localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
         }
 
         ///////////////////////////
