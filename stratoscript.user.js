@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.47
+// @version      0.51
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -78,6 +78,16 @@
             if ( parametres[ "sw-refresh-posts" ] == true ) {
                 ajoutAutorefreshPosts();
             }
+            if ( parametres[ "sw-formulaire-posts" ] == true ) {
+                // Mettre les events sur les citations permettant d'ouvrir le nv formulaire si on clic dessus
+                preparation_nouveauFormulairePost();
+                // Modification du formulaire d'envoi de posts
+                nouveauFormulairePost();
+            }
+
+            if ( parametres[ "sw-recherche-posts" ] == true ) {
+                ajoutRecherchePosts();
+            }
         }
         // LISTE DES TOPICS
         if ( path.startsWith( "/forum" ) || path.startsWith( "/index.php/forum" ) ) {
@@ -87,7 +97,9 @@
         }
         // MP
         if ( path.startsWith( "/messagerie/" ) || path.startsWith( "/index.php/messagerie/" ) ) {
-            //
+            if ( parametres[ "sw-recherche-posts" ] == true ) {
+                ajoutRechercheMPs();
+            }
         } else if ( path.startsWith( "/messagerie" ) || path.startsWith( "/index.php/messagerie" ) ) {
             // LISTE DES MPS
             if ( parametres[ "sw-btn-quitter-mp" ] == true ) {
@@ -190,6 +202,11 @@
                 if ( parametres[ "sw-twitter" ] == true ) {
                     twttr.widgets.load();
                 }
+                // Mettre les events sur les citations permettant d'ouvrir le nv formulaire si on clic dessus
+                if ( parametres[ "sw-formulaire-posts" ] == true ) {
+                    preparation_nouveauFormulairePost();
+                }
+
             }
         } else {
             // Boucle d'autorefresh
@@ -199,6 +216,10 @@
                 // Mettre en page les éventuels tweets si l'option est activée
                 if ( parametres[ "sw-twitter" ] == true ) {
                     twttr.widgets.load();
+                }
+                // Mettre les events sur les citations permettant d'ouvrir le nv formulaire si on clic dessus
+                if ( parametres[ "sw-formulaire-posts" ] == true ) {
+                    preparation_nouveauFormulairePost();
                 }
             }
         }
@@ -242,6 +263,188 @@
                 }
             }
         } );
+    }
+
+    function ajoutRecherchePosts() {
+        let modalRecherche = '<!-- MODAL RECHERCE--><div class="modal fade" id="modalRecherche" tabindex="-1" role="dialog" aria-labelledby="modalRechercheLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalRechercheLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="col-md-12"> <div class="row"> <div class="col-md-12"> <div class="row"><!-- Filtres de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Filtres de recherche</h4> <br> <div class="row"> <div class="col-md-6"> <input type="text" class="form-control inputFiltreAuteur" placeholder="Auteur"> </div> <div class="col-md-6"> <input type="text" class="form-control inputFiltreContenu" placeholder="Contenu"> </div> </div></div> <div class="panel-footer"> <button id="btn-recherche" class="btn btn-primary" type="button">Rechercher</button> </div> </div><!-- Barre de progrssion --> <div class="progress progression_recherche hidden" style="margin-top:20px"> <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width:0%"> 0% </div> </div><!-- Résultats de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Résultats de recherche</h4> <br> <div class="zone-resultats-recherche row" style="padding:10px"> </div> </div> </div></div> </div> </div></div></div><div class="modal-footer"> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
+
+        let zoneRecherche = document.createElement( 'div' );
+        zoneRecherche.setAttribute( "id", "zoneRecherche" )
+        zoneRecherche.innerHTML = modalRecherche;
+        document.querySelector( '.main-container' ).appendChild( zoneRecherche );
+
+        // Ajout du bouton de recherche
+        let btnRechercher = document.createElement( 'button' );
+        btnRechercher.setAttribute( "style", "margin-right:3px" );
+        btnRechercher.setAttribute( "data-toggle", "modal" );
+        btnRechercher.setAttribute( "data-target", "#modalRecherche" );
+        btnRechercher.setAttribute( "class", "btn btn-primary btn-rechercher pull-right" );
+        btnRechercher.innerText = 'Rechercher';
+        document.querySelector( '.topic-moderation' ).append( btnRechercher );
+
+        // Event - Clic sur le bouton de recherche
+        document.getElementById( 'btn-recherche' ).onclick = function () {
+            rechercheTopic();
+        }
+
+        async function rechercheTopic() {
+            let progressbar = document.querySelector( '.progression_recherche' );
+            let filtre_auteur = document.querySelector( '.inputFiltreAuteur' ).value;
+            let filtre_contenu = document.querySelector( '.inputFiltreContenu' ).value;
+
+            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' )
+            let page_max = pagination[pagination.length - 2].innerText;
+            let id_topic = /topic\/([0-9]+)-/.exec( path )[ 1 ];
+
+            // Vider la liste
+            document.querySelector( '.zone-resultats-recherche' ).innerHTML = '';
+
+            // Parcourir les pages
+            for ( let page = 1; page <= page_max; page++ ) {
+                let url = 'https://avenoel.org/topic/' + id_topic + '-' + page + '-';
+                let doc = await getDoc( url );
+                // Parcourir les posts
+                doc.querySelectorAll( '.topic-messages > .topic-message' ).forEach( function ( e ) {
+                    let auteur = e.querySelector( '.message-username ' ).innerText;
+                    let contenu = e.querySelector( '.message-content ' ).innerText;
+                    // Si les filtres matchent
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && !( auteur.indexOf( filtre_auteur ) == -1 ) ) {
+                        document.querySelector( '.zone-resultats-recherche' ).append( e );
+                    }
+                } );
+                // Affichage progressbar
+                let pourcentage = Math.ceil( page * 100 / page_max );
+                progressbar.classList.remove( 'hidden' );
+                progressbar.children[ 0 ].setAttribute( "style", "width:" + pourcentage + "%" );
+                progressbar.children[ 0 ].innerText = pourcentage + '%';
+            }
+            // Cacher progressbar
+            progressbar.classList.add( 'hidden' );
+        }
+    }
+
+    // Mettre les events sur les citations permettant d'ouvrir le nv formulaire si on clic dessus
+    function preparation_nouveauFormulairePost() {
+        // Event - Clic sur un bouton de citation d'un post
+        document.querySelectorAll( '.message-quote' ).forEach( function ( e ) {
+            e.onclick = function () {
+                // Ouvrir le formulaire de post
+                document.querySelector( '.btn-agrandir' ).click();
+            }
+        } );
+    }
+
+    // Modification du formulaire d'envoi de posts
+    function nouveauFormulairePost() {
+        let envoiFormulaire = false;
+
+        // Zone du formulaire
+        let zone = document.createElement( 'div' );
+        zone.setAttribute( "style", "z-index: 1031; position:fixed;bottom:5px;padding:10px;height:50px" );
+        zone.setAttribute( "class", "container-content container zoneNouveauFormulairePosts" );
+        let section = document.createElement( 'section' );
+        section.setAttribute( "style", "resize: horizontal;max-height:80vh;box-shadow: 0px 0px 5px black;overflow-y: auto;border:1px solid #d8d8d6" );
+        section.setAttribute( "class", "hidden-xs hidden-sm-12 col-md-9" );
+        zone.append( section );
+        let form = document.querySelector( 'form#form' );
+        section.append( form )
+        document.querySelector( '.main-container' ).append( zone );
+        // Zone des boutons du formulaire
+        let reponse_actions = document.createElement( 'div' );
+        reponse_actions.setAttribute( "class", "reponse-actions" );
+        reponse_actions.setAttribute( "style", "position:absolute; top:4px; right:20px" );
+        // Boutons du formulaire
+        let reponse_agrandir = document.createElement( 'a' );
+        reponse_agrandir.setAttribute( "class", "btn-agrandir btn btn-primary" );
+        reponse_agrandir.setAttribute( "title", "Agrandir" );
+        reponse_agrandir.setAttribute( "style", "height:35px;margin-left:5px" );
+        reponse_agrandir.innerHTML = '<span class="glyphicon glyphicon-plus"></span>';
+        reponse_actions.append( reponse_agrandir );
+        let reponse_reduire = document.createElement( 'a' );
+        reponse_reduire.setAttribute( "class", "btn-reduire btn btn-primary hidden" );
+        reponse_reduire.setAttribute( "title", "Réduire" );
+        reponse_reduire.setAttribute( "style", "height:35px;margin-left:5px" );
+        reponse_reduire.innerHTML = '<span class="glyphicon glyphicon-minus"></span>';
+        reponse_actions.append( reponse_reduire );
+        form.append( reponse_actions );
+
+        // Charger le brouillon s'il existe
+        let brouillon = localStorage_chargement( "ss_brouillon" );
+        document.querySelector( '.zoneNouveauFormulairePosts textarea' ).value = brouillon;
+
+        // Event - Clic sur le bouton d'agrandissement
+        reponse_reduire.onclick = function () {
+            if ( form.querySelector( '.form-group.preview' ).getAttribute( "style" ) == "display: block;" ) {
+                form.querySelector( '.form-group.preview' ).setAttribute( "style", "display:none" );
+            } else {
+                zone.setAttribute( "style", "z-index: 1031; position:fixed;bottom:5px;padding:10px;height:50px" );
+                reponse_reduire.classList.add( 'hidden' );
+                reponse_agrandir.classList.remove( 'hidden' );
+            }
+        }
+        // Event - Clic sur le bouton de réduction
+        reponse_agrandir.onclick = function () {
+            if ( zone.getAttribute( "style" ) == "z-index: 1031; position:fixed;bottom:5px;padding:10px;height:50px" ) {
+                zone.setAttribute( "style", "z-index: 1031; position:fixed;bottom:5px;padding:10px" );
+                reponse_reduire.classList.remove( 'hidden' );
+                reponse_agrandir.classList.add( 'hidden' );
+            }
+        }
+
+        // Mémoriser le contenu du post en tant que brouillon, si la page est quittée avec le forumaire non vide
+        window.onbeforeunload = function ( event ) {
+            if ( envoiFormulaire == false ) {
+                let saisie = document.querySelector( '.zoneNouveauFormulairePosts textarea' ).value;
+                // Save le brouillon
+                localStorage.setItem( "ss_brouillon", JSON.stringify( saisie ) );
+            }
+        }
+        // Supprimer le brouillon si le post est envoyé
+        document.querySelector( '.zoneNouveauFormulairePosts form' ).onsubmit = function () {
+            envoiFormulaire = true;
+            localStorage.setItem( "ss_brouillon", null );
+        };
+
+        ////////////////////////////////
+        //  Drag & drop du formulaire  |
+        ////////////////////////////////
+
+        var contextmenu = document.querySelector( '.zoneNouveauFormulairePosts' );
+        var initX,
+            initY,
+            mousePressX,
+            mousePressY;
+
+        contextmenu.addEventListener( 'mousedown', function ( event ) {
+            // Drag & drop seulement si on chope le titre et si le formulaire n'est pas réduit
+            if ( !event.target.classList.contains( 'bloc-title' ) || !reponse_agrandir.classList.contains( 'hidden' ) ) {
+                return;
+            }
+
+            initX = this.offsetLeft;
+            initY = this.offsetTop;
+            mousePressX = event.clientX;
+            mousePressY = event.clientY;
+
+            this.addEventListener( 'mousemove', repositionElement, false );
+
+            window.addEventListener( 'mouseup', function () {
+                contextmenu.removeEventListener( 'mousemove', repositionElement, false );
+            }, false );
+
+        }, false );
+
+        function repositionElement( event ) {
+            this.style.left = initX + event.clientX - mousePressX + 'px';
+            this.style.top = initY + event.clientY - mousePressY + 'px';
+        }
+
+        /*
+        console.log( 'offset left : ', document.getElementById( "contextMenu" ).offsetLeft );
+        console.log( 'offset top : ', document.getElementById( "contextMenu" ).offsetTop );
+        console.log( 'offset width : ', document.getElementById( "contextMenu" ).offsetWidth );
+        console.log( 'offset height : ', document.getElementById( "contextMenu" ).offsetHeight );
+        */
     }
 
     // Modifications exclusives à la liste des posts d'un topic
@@ -473,14 +676,8 @@
     async function refreshTopics() {
         // Animation refresh
         document.querySelector( '.btn-autorefresh-topics' ).classList.add( 'processing' );
-        // Récupération de la page
-        let page = "";
-        if ( path.match( /\/forum\/([0-9]+)/ ) ) {
-            page = /\/forum\/([0-9]+)/.exec( path )[ 1 ];
-        }
         // Récupérer la liste des topics à la bonne page
-        let url_page = "https://avenoel.org/" + indexPhp + "forum/" + page
-        let doc = await getDoc( url_page );
+        let doc = await getDoc( document.location );
         // Modifier le contenu (blacklist...)
         modifListeTopics( doc );
         // Stoper l'animation refresh
@@ -618,6 +815,71 @@
         } );
     }
 
+    ////////////////////
+    //  Intrface - MP  |
+    ////////////////////
+
+    function ajoutRechercheMPs() {
+        let modalRecherche = '<!-- MODAL RECHERCE--><div class="modal fade" id="modalRecherche" tabindex="-1" role="dialog" aria-labelledby="modalRechercheLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalRechercheLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="col-md-12"> <div class="row"> <div class="col-md-12"> <div class="row"><!-- Filtres de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Filtres de recherche</h4> <br> <div class="row"> <div class="col-md-6"> <input type="text" class="form-control inputFiltreAuteur" placeholder="Auteur"> </div> <div class="col-md-6"> <input type="text" class="form-control inputFiltreContenu" placeholder="Contenu"> </div> </div></div> <div class="panel-footer"> <button id="btn-recherche" class="btn btn-primary" type="button">Rechercher</button> </div> </div><!-- Barre de progrssion --> <div class="progress progression_recherche hidden" style="margin-top:20px"> <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width:0%"> 0% </div> </div><!-- Résultats de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Résultats de recherche</h4> <br> <div class="zone-resultats-recherche row" style="padding:10px"> </div> </div> </div></div> </div> </div></div></div><div class="modal-footer"> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
+
+        let zoneRecherche = document.createElement( 'div' );
+        zoneRecherche.setAttribute( "id", "zoneRecherche" )
+        zoneRecherche.innerHTML = modalRecherche;
+        document.querySelector( '.main-container' ).appendChild( zoneRecherche );
+
+        // Retirer la classe "col-md-2" au bouton refresh qui rend moche
+        document.querySelector( '.topic-title' ).nextElementSibling.nextElementSibling.querySelector( '.col-md-2' ).classList.remove( 'col-md-2' );
+
+        // Ajout du bouton de recherche
+        let btnRechercher = document.createElement( 'button' );
+        btnRechercher.setAttribute( "style", "margin-right:3px" );
+        btnRechercher.setAttribute( "data-toggle", "modal" );
+        btnRechercher.setAttribute( "data-target", "#modalRecherche" );
+        btnRechercher.setAttribute( "class", "btn btn-primary btn-rechercher pull-right" );
+        btnRechercher.innerText = 'Rechercher';
+        document.querySelector( '.topic-title' ).nextElementSibling.nextElementSibling.append( btnRechercher );
+
+        // Event - Clic sur le bouton de recherche
+        document.getElementById( 'btn-recherche' ).onclick = function () {
+            rechercheMP();
+        }
+
+        async function rechercheMP() {
+            let progressbar = document.querySelector( '.progression_recherche' );
+            let filtre_auteur = document.querySelector( '.inputFiltreAuteur' ).value;
+            let filtre_contenu = document.querySelector( '.inputFiltreContenu' ).value;
+
+            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' )
+            let page_max = pagination[pagination.length - 2].innerText;
+            let id_topic = /messagerie\/([0-9]+)-/.exec( path )[ 1 ];
+
+            // Vider la liste
+            document.querySelector( '.zone-resultats-recherche' ).innerHTML = '';
+
+            // Parcourir les pages
+            for ( let page = 1; page <= page_max; page++ ) {
+                let url = 'https://avenoel.org/messagerie/' + id_topic + '-' + page + '-';
+                let doc = await getDoc( url );
+                // Parcourir les posts
+                doc.querySelectorAll( '.topic-messages > .topic-message' ).forEach( function ( e ) {
+                    let auteur = e.querySelector( '.message-username ' ).innerText;
+                    let contenu = e.querySelector( '.message-content ' ).innerText;
+                    // Si les filtres matchent
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && !( auteur.indexOf( filtre_auteur ) == -1 ) ) {
+                        document.querySelector( '.zone-resultats-recherche' ).append( e );
+                    }
+                } );
+                // Affichage progressbar
+                let pourcentage = Math.ceil( page * 100 / page_max );
+                progressbar.classList.remove( 'hidden' );
+                progressbar.children[ 0 ].setAttribute( "style", "width:" + pourcentage + "%" );
+                progressbar.children[ 0 ].innerText = pourcentage + '%';
+            }
+            // Cacher progressbar
+            progressbar.classList.add( 'hidden' );
+        }
+    }
+
     ///////////////////////////////////
     //  Interface - Toutes les pages  |
     ///////////////////////////////////
@@ -654,8 +916,12 @@
         document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-topics" ];
         // Topic
         document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-posts" ];
+        document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked = parametres[ "sw-formulaire-posts" ];
+        document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-posts" ];
         // Liste des MPs
         document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked = parametres[ "sw-btn-quitter-mp" ];
+        // MPs
+        document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mp" ];
         // Blacklist forumeurs
         document.getElementById( 'rg-blacklist-forumeurs' ).value = parametres[ "rg-blacklist-forumeurs" ];
     }
@@ -686,7 +952,7 @@
             cssSliders = '<style type="text/css">/* The switch - the box around the slider */.switch {position: relative;display: inline-block;width: 60px;height: 34px;}/* Hide default HTML checkbox */.switch input {opacity: 0;width: 0;height: 0;}/* The slider */.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: "";height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #fdde02;}input:focus + .slider {box-shadow: 0 0 1px #fdde02;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}/* Rounded sliders */.slider.round {border-radius: 34px;}.slider.round:before {border-radius: 50%;}</style>';
         }
 
-        let pannelHTML = '<div class="modal fade" id="modalStratoscript" tabindex="-1" role="dialog" aria-labelledby="modalStratoscriptLabel">     <div class="modal-dialog modal-lg" role="document">    <div class="modal-content">      <div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);">     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>     <h4 class="modal-title" id="modalStratoscriptLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4>      </div>      <div id="stratoscriptPanel" class="modal-body" style="overflow-y:scroll;max-height:75vh">      <div class="row">        <div class="col-md-12">        <ul id="onglets" class="nav nav-tabs onglets">         <li id="onglet-general"><a>Général</a></li>         <li id="onglet-blacklist"><a>Blacklist</a></li>        </ul>       </div>       </div>      <div id="zones-container" class="zones-container row">       <!-- ONGLET GENERAL -->       <div id="zone-general" class="col-md-12">        <div class="col-md-12">          <div class="panel-heading"><h3>Général</h3></div>          <!-- TOUTES LES PAGES -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Ensemble du forum</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-twitter" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Tweeter</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-issoutv" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration IssouTV</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-vocaroo" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration Vocaroo</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-pornhub" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration PornHub</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-mp4-webm" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Intégration mp4 et webm</div>             </div>            </div>           </div>            <br>            <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-masquer-inutile" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Masquer les trucs inutiles</div>             </div>            </div>            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-posts-url" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Affichage des posts par URL</div>             </div>            </div>           </div>           </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES TOPICS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des topics</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-refresh-topics" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- TOPIC -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Topic</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-refresh-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Refresh amélioré</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         <!-- LISTE DES MPS -->         <div class="panel panel-default">          <div class="panel-body">           <h4>Liste des MPs</h4>           <br>           <div class="row">            <div class="col-md-4">             <div style="align-items: center; display: inline-flex;margin-bottom:5px">              <label id="sw-btn-quitter-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label>              <div>Bouton de sortie de MP</div>             </div>            </div>           </div>          </div>          <div class="panel-footer">           <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button>          </div>         </div>         </div>       </div>        <!-- ONGLET BLACKLIST -->       <div id="zone-blacklist" class="col-md-12">         <div class="col-md-12">         <div class="panel-heading"><h3>Blacklist de forumeurs</h3></div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12">            <h4>Niveau de blocage</h4>            <br>            <div class="col-xs-4" style="text-align:left"><p>Faible</p></div><div class="col-xs-4" style="text-align:center"><p>Moyen</p></div><div class="col-xs-4" style="text-align:right"><p>Elevé</p></div>            <input type="range" id="rg-blacklist-forumeurs" min="1" max="3">           </div>          </div>         </div>          <div class="panel panel-default">          <div class="panel-body">           <div class="col-md-12"><h4>Liste des forumeurs bloqués</h4></div>           <div class="col-md-8" style="max-height:260px;overflow:auto;">            <table id="table-blacklist-forumeurs" class="table table-condensed">             <thead>              <tr class="">               <th style="width:40px">#</th>               <th>Pseudo</th>              </tr>             </thead>             <tbody></tbody>            </table>           </div>           <div class="col-md-4">            <div class="col-md-12"><h5>Blacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span id="btn_blacklist_forumeurs_ajout" class="input-group-btn">               <button class="btn btn-success" type="button" style="height:36px"><span class="glyphicon glyphicon-plus"></span></button>              </span>             </div>            </div>            <div class="col-md-12"><h5>Déblacklister un forumeur</h5>             <div class="input-group">              <input type="text" class="form-control" placeholder="" style="height:36px">              <span id="btn_blacklist_forumeurs_suppr" class="input-group-btn">               <button class="btn btn-danger" type="button" style="height:36px"><span class="glyphicon glyphicon-remove"></span></button>              </span>             </div>             <br>            </div>           </div>          </div>         </div>        </div>       </div>      </div>       </div>      <div class="modal-footer">     <p id="versionScript" class="pull-left versionScript" style="margin-top:8px; margin-bottom:0px">Version -</p>     <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button>      </div>    </div>     </div>   </div>';
+        let pannelHTML = '<div class="modal fade" id="modalStratoscript" tabindex="-1" role="dialog" aria-labelledby="modalStratoscriptLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalStratoscriptLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div id="stratoscriptPanel" class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="row"><div class="col-md-12"><ul id="onglets" class="nav nav-tabs onglets"> <li id="onglet-general"><a>Général</a></li> <li id="onglet-blacklist"><a>Blacklist</a></li></ul> </div> </div><div id="zones-container" class="zones-container row"> <!-- ONGLET GENERAL --> <div id="zone-general" class="col-md-12"><div class="col-md-12"><div class="panel-heading"><h3>Général</h3></div><!-- TOUTES LES PAGES --> <div class="panel panel-default"><div class="panel-body"> <h4>Ensemble du forum</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-twitter" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration Tweeter</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-issoutv" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration IssouTV</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-vocaroo" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration Vocaroo</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-pornhub" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration PornHub</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-mp4-webm" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration mp4 et webm</div> </div></div> </div><br><div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-masquer-inutile" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Masquer les trucs inutiles</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-posts-url" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Affichage des posts par URL</div> </div></div> </div> </div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- LISTE DES TOPICS --> <div class="panel panel-default"><div class="panel-body"> <h4>Liste des topics</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-refresh-topics" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Refresh amélioré</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- TOPIC --> <div class="panel panel-default"><div class="panel-body"> <h4>Topic</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-refresh-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Refresh amélioré</div> </div></div> <div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-formulaire-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Formulaire superposé</div> </div></div> <div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-recherche-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Recherche dans topic</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- LISTE DES MPS --> <div class="panel panel-default"><div class="panel-body"> <h4>Liste des MPs</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-btn-quitter-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Bouton de sortie de MP</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- MPS --> <div class="panel panel-default"><div class="panel-body"> <h4>MPs</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-recherche-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Recherche dans les MPs</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> </div> </div><!-- ONGLET BLACKLIST --> <div id="zone-blacklist" class="col-md-12"> <div class="col-md-12"> <div class="panel-heading"><h3>Blacklist de forumeurs</h3></div><div class="panel panel-default"><div class="panel-body"> <div class="col-md-12"><h4>Niveau de blocage</h4><br><div class="col-xs-4" style="text-align:left"><p>Faible</p></div><div class="col-xs-4" style="text-align:center"><p>Moyen</p></div><div class="col-xs-4" style="text-align:right"><p>Elevé</p></div><input type="range" id="rg-blacklist-forumeurs" min="1" max="3"> </div></div> </div><div class="panel panel-default"><div class="panel-body"> <div class="col-md-12"><h4>Liste des forumeurs bloqués</h4></div> <div class="col-md-8" style="max-height:260px;overflow:auto;"><table id="table-blacklist-forumeurs" class="table table-condensed"> <thead><tr class=""> <th style="width:40px">#</th> <th>Pseudo</th></tr> </thead> <tbody></tbody></table> </div> <div class="col-md-4"><div class="col-md-12"><h5>Blacklister un forumeur</h5> <div class="input-group"><input type="text" class="form-control" placeholder="" style="height:36px"><span id="btn_blacklist_forumeurs_ajout" class="input-group-btn"> <button class="btn btn-success" type="button" style="height:36px"><span class="glyphicon glyphicon-plus"></span></button></span> </div></div><div class="col-md-12"><h5>Déblacklister un forumeur</h5> <div class="input-group"><input type="text" class="form-control" placeholder="" style="height:36px"><span id="btn_blacklist_forumeurs_suppr" class="input-group-btn"> <button class="btn btn-danger" type="button" style="height:36px"><span class="glyphicon glyphicon-remove"></span></button></span> </div> <br></div> </div></div> </div></div> </div></div> </div><div class="modal-footer"> <p id="versionScript" class="pull-left versionScript" style="margin-top:8px; margin-bottom:0px">Version -</p> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
 
         // Si le thème noir est actif, l'appliquer sur le pannel
         if ( theme_noir ) {
@@ -721,7 +987,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.47';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.51';
 
         //////////////
         //  BOUTONS  |
@@ -841,8 +1107,12 @@
                 parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
                 // Topic
                 parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
+                parametres[ "sw-formulaire-posts" ] = document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked;
+                parametres[ "sw-recherche-posts" ] = document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked;
                 // Liste des MPs
                 parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
+                // MPs
+                parametres[ "sw-recherche-mp" ] = document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked;
                 // Blacklist forumeurs
                 parametres[ "rg-blacklist-forumeurs" ] = document.getElementById( 'rg-blacklist-forumeurs' ).value;
                 // Mettre à jour le LocalStorage
