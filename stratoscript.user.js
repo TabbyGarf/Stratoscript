@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.53
+// @version      0.53.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -777,21 +777,21 @@
         // Ajout du bouton d'autorefresh et suppression du bouton refresh normal
         let boutonRefresh = document.createElement( 'a' );
         boutonRefresh.setAttribute( 'id', 'btn-autorefresh-topics' );
-        boutonRefresh.setAttribute( 'class', 'btn-autorefresh-topics btn grey-btn' );
+        boutonRefresh.setAttribute( 'class', 'btn-autorefresh-topics btn btn-grey' );
         boutonRefresh.setAttribute( 'style', 'font-size: .9em' );
         boutonRefresh.innerHTML = "<i class='glyphicon glyphicon-refresh'></i>";
-        let ancienBtnRefresh = document.querySelector( ".grey-btn[data-refresh*='.topics']" );
+        let ancienBtnRefresh = document.querySelector( '.glyphicon.glyphicon-refresh' ).parentNode;
         ancienBtnRefresh.parentNode.replaceChild( boutonRefresh, ancienBtnRefresh );
 
         // Event - Simple clic sur le bouton refresh
         boutonRefresh.onclick = function () {
             // Si on clique sur le bouton pour couper l'auto-refresh...
-            if ( !boutonRefresh.classList.contains( 'grey-btn' ) ) {
+            if ( !boutonRefresh.classList.contains( 'btn-grey' ) ) {
                 // Mémoriser l'état
                 parametres[ "etat_autorefresh_topics" ] = false;
                 localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Couper l'autorefresh
-                boutonRefresh.classList.add( 'grey-btn' );
+                boutonRefresh.classList.add( 'btn-grey' );
                 boutonRefresh.classList.remove( 'btn-success' );
             } else {
                 autorefreshTopics( 0 );
@@ -800,13 +800,13 @@
         // Event - Double clic sur le bouton refresh
         boutonRefresh.ondblclick = function () {
             // Si on double-clique sur le bouton pour allumer l'auto-refresh...
-            if ( boutonRefresh.classList.contains( 'grey-btn' ) ) {
+            if ( boutonRefresh.classList.contains( 'btn-grey' ) ) {
                 // Mémoriser l'état
                 parametres[ "etat_autorefresh_topics" ] = true;
                 localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Allumer autorefresh
                 boutonRefresh.classList.add( 'btn-success' );
-                boutonRefresh.classList.remove( 'grey-btn' );
+                boutonRefresh.classList.remove( 'btn-grey' );
                 autorefreshTopics( 1 );
             }
         }
@@ -1032,7 +1032,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.53';
+        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.53.1';
 
         //////////////
         //  BOUTONS  |
