@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      0.53.1
+// @version      1.0
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -38,7 +38,8 @@
             // Ajouter la zone du pannel de configuration du script dans la page
             let zonePannel = document.createElement( 'div' );
             zonePannel.setAttribute( "id", "stratoscriptPanel" );
-            document.querySelector( '.main-container' ).appendChild( zonePannel );
+            zonePannel.setAttribute( "style", "position:absolute;top:10vh;left:10vw;width:80vw;max-height:80vh;z-index:99999" );
+            document.querySelector( 'body' ).appendChild( zonePannel );
             // Virer de l'interface les éléments à l'abandon (sauf sur le profil)
             if ( parametres[ "sw-masquer-inutile" ] == true && !path.startsWith( "/profil" ) ) {
                 virerTrucsAbandonnes();
@@ -930,11 +931,11 @@
     // Mise à jour de la blacklist personnelle des pseudos sur le pannel
     function majPannel_BlacklistPseudos() {
         // Vider le tableau
-        document.querySelectorAll( '#table-blacklist-forumeurs > tbody > tr' ).forEach( function ( e ) {
+        document.querySelectorAll( '#ss-table-blacklist-forumeurs > tbody > tr' ).forEach( function ( e ) {
             e.remove();
         } );
         // Parcourir la blacklist et remplir le tableau
-        let corpsTableau = document.getElementById( 'table-blacklist-forumeurs' ).getElementsByTagName( 'tbody' )[ 0 ];
+        let corpsTableau = document.getElementById( 'ss-table-blacklist-forumeurs' ).getElementsByTagName( 'tbody' )[ 0 ];
         for ( let i = 0; i < blacklist_pseudos.length; ++i ) {
             let row = corpsTableau.insertRow( 0 );
             let cell1 = row.insertCell( 0 );
@@ -990,41 +991,11 @@
         boutonScript.innerHTML = '<a style="height:70px;width:145px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></a>';
         document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
-        let cssSliders
-        if ( theme_noir ) {
-            cssSliders = '<style type="text/css">/* The switch - the box around the slider */.switch {position: relative;display: inline-block;width: 60px;height: 34px;}/* Hide default HTML checkbox */.switch input {opacity: 0;width: 0;height: 0;}/* The slider */.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: "";height: 26px;width: 26px;left: 4px;bottom: 4px;background-color:#333333;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #fdde02;}input:focus + .slider {box-shadow: 0 0 1px #fdde02;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}/* Rounded sliders */.slider.round {border-radius: 34px;}.slider.round:before {border-radius: 50%;}</style>';
-        } else {
-            cssSliders = '<style type="text/css">/* The switch - the box around the slider */.switch {position: relative;display: inline-block;width: 60px;height: 34px;}/* Hide default HTML checkbox */.switch input {opacity: 0;width: 0;height: 0;}/* The slider */.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: "";height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #fdde02;}input:focus + .slider {box-shadow: 0 0 1px #fdde02;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}/* Rounded sliders */.slider.round {border-radius: 34px;}.slider.round:before {border-radius: 50%;}</style>';
-        }
+        let css = '<style type="text/css"> /* SLIDERS */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background {display: none; /* Hidden by default */flex-direction: row;align-items: center;position: fixed; /* Stay in place */z-index: 1; /* Sit on top */left: 0;top: 0;width: 100%; /* Full width */height: 100%; /* Full height */overflow: auto; /* Enable scroll if needed */background-color: rgb(0,0,0); /* Fallback color */background-color: rgba(0,0,0,0.4); /* Black w/ opacity */flex-direction: column; } /* Fermer */ span.ss-panel-close {color: #262626;font-size: 24px;font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus {color: black;text-decoration: none;cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; max-width: 1200px; margin: 20px; }/* ------------------ STRUCTURE ------------------- */ .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; } .ss-col { display: flex; flex-direction: column; width: 100%; } .ss-fill { flex-grow: 4; } .ss-space-between { justify-content: space-between; } .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-vert { background-color: #2ab27b; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; } /* ------------------PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center;border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a { color: #c8c8c9; background-color: #242529; }/* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) {.ss-mini-panel-xs { width: 100%;} } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:#2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { width: 185px; margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; }/* ELEMENTS SPECIFIQUES */ .rg-blacklist-forumeurs { width: 100%; } .ss-table-blacklist-forumeurs { min-width: 500px; width: 100%; color: #bbb; } #ss-zone-blacklist .ss-mini-panel-xs { border: none; } </style>';
 
-        let pannelHTML = '<div class="modal fade" id="modalStratoscript" tabindex="-1" role="dialog" aria-labelledby="modalStratoscriptLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalStratoscriptLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div id="stratoscriptPanel" class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="row"><div class="col-md-12"><ul id="onglets" class="nav nav-tabs onglets"> <li id="onglet-general"><a>Général</a></li> <li id="onglet-blacklist"><a>Blacklist</a></li></ul> </div> </div><div id="zones-container" class="zones-container row"> <!-- ONGLET GENERAL --> <div id="zone-general" class="col-md-12"><div class="col-md-12"><div class="panel-heading"><h3>Général</h3></div><!-- TOUTES LES PAGES --> <div class="panel panel-default"><div class="panel-body"> <h4>Ensemble du forum</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-twitter" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration Tweeter</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-issoutv" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration IssouTV</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-vocaroo" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration Vocaroo</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-pornhub" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration PornHub</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-mp4-webm" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Intégration mp4 et webm</div> </div></div> </div><br><div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-corr-url-odysee" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Corriger URLs Odysee</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-odysee" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Integration Odysee</div> </div></div> </div><br><div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-masquer-inutile" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Masquer les trucs inutiles</div> </div></div><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-posts-url" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Affichage des posts par URL</div> </div></div> </div> </div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- LISTE DES TOPICS --> <div class="panel panel-default"><div class="panel-body"> <h4>Liste des topics</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-refresh-topics" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Refresh amélioré</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- TOPIC --> <div class="panel panel-default"><div class="panel-body"> <h4>Topic</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-refresh-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Refresh amélioré</div> </div></div> <div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-formulaire-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Formulaire superposé</div> </div></div> <div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-recherche-posts" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Recherche dans un topic</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- LISTE DES MPS --> <div class="panel panel-default"><div class="panel-body"> <h4>Liste des MPs</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-btn-quitter-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Bouton de sortie de MP</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> <!-- MPS --> <div class="panel panel-default"><div class="panel-body"> <h4>MPs</h4> <br> <div class="row"><div class="col-md-4"> <div style="align-items: center; display: inline-flex;margin-bottom:5px"><label id="sw-recherche-mp" class="switch" style="margin-bottom:0px;margin-left:5px;margin-right:5px"><input type="checkbox"><span class="slider round"></span></label><div>Recherche dans un MP</div> </div></div> </div></div><div class="panel-footer"> <button id="btn-validation-parametres" class="btn grey-btn" type="button">Valider</button></div> </div> </div> </div><!-- ONGLET BLACKLIST --> <div id="zone-blacklist" class="col-md-12"> <div class="col-md-12"> <div class="panel-heading"><h3>Blacklist de forumeurs</h3></div><div class="panel panel-default"><div class="panel-body"> <div class="col-md-12"><h4>Niveau de blocage</h4><br><div class="col-xs-4" style="text-align:left"><p>Faible</p></div><div class="col-xs-4" style="text-align:center"><p>Moyen</p></div><div class="col-xs-4" style="text-align:right"><p>Elevé</p></div><input type="range" id="rg-blacklist-forumeurs" min="1" max="3"> </div></div> </div><div class="panel panel-default"><div class="panel-body"> <div class="col-md-12"><h4>Liste des forumeurs bloqués</h4></div> <div class="col-md-8" style="max-height:260px;overflow:auto;"><table id="table-blacklist-forumeurs" class="table table-condensed"> <thead><tr class=""> <th style="width:40px">#</th> <th>Pseudo</th></tr> </thead> <tbody></tbody></table> </div> <div class="col-md-4"><div class="col-md-12"><h5>Blacklister un forumeur</h5> <div class="input-group"><input type="text" class="form-control" placeholder="" style="height:36px"><span id="btn_blacklist_forumeurs_ajout" class="input-group-btn"> <button class="btn btn-success" type="button" style="height:36px"><span class="glyphicon glyphicon-plus"></span></button></span> </div></div><div class="col-md-12"><h5>Déblacklister un forumeur</h5> <div class="input-group"><input type="text" class="form-control" placeholder="" style="height:36px"><span id="btn_blacklist_forumeurs_suppr" class="input-group-btn"> <button class="btn btn-danger" type="button" style="height:36px"><span class="glyphicon glyphicon-remove"></span></button></span> </div> <br></div> </div></div> </div></div> </div></div> </div><div class="modal-footer"> <p id="versionScript" class="pull-left versionScript" style="margin-top:8px; margin-bottom:0px">Version -</p> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
+        let pannelHTML = '<!-- Fond modal--> <div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"><!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des posts par URL</div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div><div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div><div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche dans un MP</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --><!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col"><div class="ss-row"> <div class="ss-mini-panel-xs"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div><div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div><div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs" id="ss-table-blacklist-forumeurs"> <thead> <tr> <th style="width:40px"></th> <th></th> </tr> </thead> <tbody></tbody> </table> </div> </div><div class="ss-mini-panel"> <h3>Niveau de blocage</h3> <div class="ss-col"> <div class="ss-row ss-space-between"> <div style="text-align:left"><p class="ss-label">Faible</p></div><div style="text-align:center"><p class="ss-label">Moyen</p></div><div style="text-align:right"><p class="ss-label">Elevé</p></div> </div><input type="range" class="rg-blacklist-forumeurs" id="rg-blacklist-forumeurs" min="1" max="3"> </div> </div></div> <!-- FIN ONGLET BLACKLIST --></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
-        // Si le thème noir est actif, l'appliquer sur le pannel
-        if ( theme_noir ) {
-
-            let contour = '#3e3d3d';
-            let secondaire = '#242529';
-            let principal = '#2f3136';
-
-            let cssThemeNoir = '<style type="text/css">';
-            cssThemeNoir += '.modal-content { background-color: ' + principal + '; }';
-            cssThemeNoir += '.modal-footer { border-top: 1px solid ' + contour + '; }';
-            cssThemeNoir += '.modal-header { border-bottom: 1px solid ' + contour + '; }';
-
-            cssThemeNoir += '.panel-body { background-color: ' + principal + '; }';
-            cssThemeNoir += '.panel-footer { background-color: ' + secondaire + '; border-top: 1px solid ' + contour + ';}';
-            cssThemeNoir += '.panel { border: 1px solid ' + contour + '; background-color: ' + principal + '; }';
-
-            cssThemeNoir += '.nav-tabs { border-bottom: 1px solid ' + contour + ';}';
-            cssThemeNoir += 'ul.nav-tabs li.active a { color: #c8c8c9; background-color: ' + secondaire + '; border: 1px solid ' + contour + ' ; border-bottom: 1px solid transparent; }';
-            cssThemeNoir += 'ul.nav-tabs li.active:hover a { color: #c8c8c9; background-color: ' + secondaire + '; border: 1px solid ' + contour + '; border-bottom: 1px solid transparent; }';
-            cssThemeNoir += 'ul.nav-tabs li:hover a { color: #c8c8c9; background-color: ' + secondaire + '; border-color: ' + principal + ' ' + principal + ' ' + contour + '; }';
-            cssThemeNoir += '</style>';
-
-            pannelHTML += cssThemeNoir;
-        }
-
-        pannelHTML += cssSliders;
+        pannelHTML += css;
 
         document.getElementById( 'stratoscriptPanel' ).innerHTML = pannelHTML;
 
@@ -1032,7 +1003,7 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'versionScript' ).innerHTML = 'Version 0.53.1';
+        document.getElementById( 'ss-version' ).innerHTML = 'Version 1.0';
 
         //////////////
         //  BOUTONS  |
@@ -1040,12 +1011,26 @@
 
         // Event - Ouverture du pannel
         document.querySelector( '.btnStratoscript' ).onclick = function () {
+            document.getElementById( "ss-panel-background" ).style.display = "flex";
+
             if ( parametres.onglet_actif != null && parametres.onglet_actif != '' ) {
                 // Ouvrir le dernier onglet ouvert
                 document.getElementById( parametres.onglet_actif + '' ).click();
             } else {
                 // Ouvrir l'onglet général par défaut
-                document.getElementById( 'onglet-general' ).click();
+                document.getElementById( 'ss-onglet-general' ).click();
+            }
+        }
+        // Event - Fermture du pannel
+        document.querySelectorAll( ".ss-panel-close" ).forEach( function ( e ) {
+            e.onclick = function () {
+                document.getElementById( "ss-panel-background" ).style.display = "none";
+            }
+        } );
+        // Event - Clic sur le background du panel
+        window.onclick = function ( event ) {
+            if ( event.target == document.getElementById( "ss-panel-background" ) ) {
+                document.getElementById( "ss-panel-background" ).style.display = "none";
             }
         }
 
@@ -1066,8 +1051,8 @@
             location.reload();
         }
         // Event - Blacklist pseudos : Clic bouton d'ajout
-        document.getElementById( 'btn_blacklist_forumeurs_ajout' ).onclick = function () {
-            let pseudo = document.getElementById( 'btn_blacklist_forumeurs_ajout' ).previousElementSibling.value
+        document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).onclick = function () {
+            let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).previousElementSibling.value
 
             // Ajouter le pseudo à la liste
             localStorage_ajout( pseudo, blacklist_pseudos, "ss_blacklist_pseudos" );
@@ -1080,8 +1065,8 @@
             location.reload();
         }
         // Event - Blacklist pseudos : Clic bouton de suppression
-        document.getElementById( 'btn_blacklist_forumeurs_suppr' ).onclick = function () {
-            let pseudo = document.getElementById( 'btn_blacklist_forumeurs_suppr' ).previousElementSibling.value;
+        document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).onclick = function () {
+            let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).previousElementSibling.value;
 
             localStorage_suppression( pseudo, blacklist_pseudos, "ss_blacklist_pseudos" );
             majPannel_BlacklistPseudos();
@@ -1098,37 +1083,37 @@
         ////////////////////////
 
         // Event - Clic sur l'onglet Général
-        document.getElementById( 'onglet-general' ).onclick = function () {
+        document.getElementById( 'ss-onglet-general' ).onclick = function () {
             // Onglets
-            document.querySelectorAll( '.onglets > li' ).forEach( function ( e ) {
+            document.querySelectorAll( '.ss-panel-onglets > div' ).forEach( function ( e ) {
                 e.classList.remove( 'active' );
             } )
-            document.getElementById( 'onglet-general' ).classList.add( 'active' );
+            document.getElementById( 'ss-onglet-general' ).classList.add( 'active' );
             // Zones
-            document.querySelectorAll( '#zones-container > div' ).forEach( function ( e ) {
+            document.querySelectorAll( '.ss-panel-body > .ss-zone' ).forEach( function ( e ) {
                 e.style.display = 'none';
             } );
-            document.getElementById( 'zone-general' ).style.display = 'block';
+            document.getElementById( 'ss-zone-general' ).style.display = 'block';
 
             // Mémoriser l'onglet actif
-            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '#onglets .active' ).id;
+            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
         }
         // Event - Clic sur l'onglet Blacklist
-        document.getElementById( 'onglet-blacklist' ).onclick = function () {
+        document.getElementById( 'ss-onglet-blacklist' ).onclick = function () {
             // Onglets
-            document.querySelectorAll( '.onglets > li' ).forEach( function ( e ) {
+            document.querySelectorAll( '.ss-panel-onglets > div' ).forEach( function ( e ) {
                 e.classList.remove( 'active' );
             } )
-            document.getElementById( 'onglet-blacklist' ).classList.add( 'active' );
+            document.getElementById( 'ss-onglet-blacklist' ).classList.add( 'active' );
             // Zones
-            document.querySelectorAll( '#zones-container > div' ).forEach( function ( e ) {
+            document.querySelectorAll( '.ss-panel-body > .ss-zone' ).forEach( function ( e ) {
                 e.style.display = 'none';
             } );
-            document.getElementById( 'zone-blacklist' ).style.display = 'block';
+            document.getElementById( 'ss-zone-blacklist' ).style.display = 'block';
 
             // Mémoriser l'onglet actif
-            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '#onglets .active' ).id;
+            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
         }
 
