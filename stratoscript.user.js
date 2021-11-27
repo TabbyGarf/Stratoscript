@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -38,7 +38,7 @@
             // Ajouter la zone du pannel de configuration du script dans la page
             let zonePannel = document.createElement( 'div' );
             zonePannel.setAttribute( "id", "stratoscriptPanel" );
-            zonePannel.setAttribute( "style", "position:absolute;top:10vh;left:10vw;width:80vw;max-height:80vh;z-index:99999" );
+            zonePannel.setAttribute( "class", "ss-panel-container" );
             document.querySelector( 'body' ).appendChild( zonePannel );
             // Virer de l'interface les éléments à l'abandon (sauf sur le profil)
             if ( parametres[ "sw-masquer-inutile" ] == true && !path.startsWith( "/profil" ) ) {
@@ -172,7 +172,7 @@
             e.remove();
         } );
         doc.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
-            document.querySelector( '.topic-messages' ).appendChild( e )
+            document.querySelector( '.topic-messages' ).appendChild( e );
         } );
         // Affichage de la pagination
         document.querySelectorAll( '.pagination-topic > li' ).forEach( function ( e ) {
@@ -229,56 +229,56 @@
     // Ajout de l'autorefresh sur les posts
     function ajoutAutorefreshPosts() {
         // Ajout du bouton d'autorefresh et suppression du bouton refresh normal
-        document.querySelectorAll( ".grey-btn[data-refresh*='.main-section']" ).forEach( function ( e ) {
+        document.querySelectorAll( '.glyphicon.glyphicon-refresh' ).forEach( function ( e ) {
+            let ancienBoutonRefresh = e.parentNode;
             let boutonRefresh = document.createElement( 'a' );
             boutonRefresh.setAttribute( "id", "btn-autorefresh-posts" );
-            boutonRefresh.setAttribute( "class", "btn-autorefresh-posts btn grey-btn" );
+            boutonRefresh.setAttribute( "class", "btn-autorefresh-posts btn btn-grey" );
             boutonRefresh.setAttribute( "style", "font-size: .9em" );
             boutonRefresh.innerHTML = "<i class='glyphicon glyphicon-refresh'></i>";
 
-            e.parentNode.insertBefore( boutonRefresh, e );
-            e.remove();
+            ancienBoutonRefresh.parentNode.insertBefore( boutonRefresh, ancienBoutonRefresh );
+            ancienBoutonRefresh.remove();
         } );
         // Evenements
         let boutonsAutorefresh = document.querySelectorAll( "#btn-autorefresh-posts" );
         boutonsAutorefresh.forEach( function ( e ) {
             e.onclick = function () {
                 // Si on clique sur le bouton pour couper l'auto-refresh...
-                if ( !e.classList.contains( 'grey-btn' ) ) {
+                if ( !e.classList.contains( 'btn-grey' ) ) {
                     boutonsAutorefresh.forEach( function ( btn ) {
-                        btn.classList.add( 'grey-btn' );
+                        btn.classList.add( 'btn-grey' );
                         btn.classList.remove( 'btn-success' );
                     } );
                 } else {
                     autorefreshPosts( 0 );
                 }
-            }
+            };
             e.ondblclick = function () {
                 // Si on double-clique sur le bouton pour allumer l'auto-refresh...
-                if ( e.classList.contains( 'grey-btn' ) ) {
+                if ( e.classList.contains( 'btn-grey' ) ) {
                     boutonsAutorefresh.forEach( function ( btn ) {
                         btn.classList.add( 'btn-success' );
-                        btn.classList.remove( 'grey-btn' );
+                        btn.classList.remove( 'btn-grey' );
                     } );
                     autorefreshPosts( 1 );
                 }
-            }
+            };
         } );
     }
 
     function ajoutRecherchePosts() {
-        let modalRecherche = '<!-- MODAL RECHERCE--><div class="modal fade" id="modalRecherche" tabindex="-1" role="dialog" aria-labelledby="modalRechercheLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalRechercheLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="col-md-12"> <div class="row"> <div class="col-md-12"> <div class="row"><!-- Filtres de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Filtres de recherche</h4> <br> <div class="row"> <div class="col-md-6"> <input type="text" class="form-control inputFiltreAuteur" placeholder="Auteur"> </div> <div class="col-md-6"> <input type="text" class="form-control inputFiltreContenu" placeholder="Contenu"> </div> </div></div> <div class="panel-footer"> <button id="btn-recherche" class="btn btn-primary" type="button">Rechercher</button> </div> </div><!-- Barre de progrssion --> <div class="progress progression_recherche hidden" style="margin-top:20px"> <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width:0%"> 0% </div> </div><!-- Résultats de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Résultats de recherche</h4> <br> <div class="zone-resultats-recherche row" style="padding:10px"> </div> </div> </div></div> </div> </div></div></div><div class="modal-footer"> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
+        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.2</span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         let zoneRecherche = document.createElement( 'div' );
-        zoneRecherche.setAttribute( "id", "zoneRecherche" )
+        zoneRecherche.setAttribute( "id", "zoneRecherche" );
+        zoneRecherche.setAttribute( "class", "ss-panel-container" );
         zoneRecherche.innerHTML = modalRecherche;
-        document.querySelector( '.main-container' ).appendChild( zoneRecherche );
+        document.querySelector( 'body' ).appendChild( zoneRecherche );
 
         // Ajout du bouton de recherche
         let btnRechercher = document.createElement( 'button' );
         btnRechercher.setAttribute( "style", "margin-right:3px" );
-        btnRechercher.setAttribute( "data-toggle", "modal" );
-        btnRechercher.setAttribute( "data-target", "#modalRecherche" );
         btnRechercher.setAttribute( "class", "btn btn-primary btn-rechercher pull-right" );
         btnRechercher.innerText = 'Rechercher';
         document.querySelector( '.topic-moderation' ).append( btnRechercher );
@@ -286,14 +286,28 @@
         // Event - Clic sur le bouton de recherche
         document.getElementById( 'btn-recherche' ).onclick = function () {
             rechercheTopic();
-        }
+        };
+
+        // Event - Clic sur le bouton d'ouverture du panel de recherche
+        document.querySelector( '.btn-rechercher' ).onclick = function () {
+            let modal = document.getElementById( "ss-modal-recherche" );
+            modal.style.display = "flex";
+        };
+
+        // Event - Clic sur un bouton de fermeture du panel de recherche
+        document.querySelectorAll( '#ss-modal-recherche .ss-panel-close' ).forEach( ( e ) => {
+            e.onclick = function () {
+                let modal = document.getElementById( "ss-modal-recherche" );
+                modal.style.display = "none";
+            };
+        } );
 
         async function rechercheTopic() {
-            let progressbar = document.querySelector( '.progression_recherche' );
-            let filtre_auteur = document.querySelector( '.inputFiltreAuteur' ).value;
-            let filtre_contenu = document.querySelector( '.inputFiltreContenu' ).value;
+            let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" )
+            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value;
+            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value;
 
-            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' )
+            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' );
             let page_max = pagination[pagination.length - 2].innerText;
             let id_topic = /topic\/([0-9]+)-/.exec( path )[ 1 ];
 
@@ -315,12 +329,12 @@
                 } );
                 // Affichage progressbar
                 let pourcentage = Math.ceil( page * 100 / page_max );
-                progressbar.classList.remove( 'hidden' );
+                progressbar.style.display = "block";
                 progressbar.children[ 0 ].setAttribute( "style", "width:" + pourcentage + "%" );
                 progressbar.children[ 0 ].innerText = pourcentage + '%';
             }
             // Cacher progressbar
-            progressbar.classList.add( 'hidden' );
+            progressbar.style.display = "none";
         }
     }
 
@@ -331,7 +345,7 @@
             e.onclick = function () {
                 // Ouvrir le formulaire de post
                 document.querySelector( '.btn-agrandir' ).click();
-            }
+            };
         } );
     }
 
@@ -348,7 +362,7 @@
         section.setAttribute( "class", "hidden-xs hidden-sm-12 col-md-9" );
         zone.append( section );
         let form = document.querySelector( 'form#form' );
-        section.append( form )
+        section.append( form );
         document.querySelector( '.main-container' ).append( zone );
         // Zone des boutons du formulaire
         let reponse_actions = document.createElement( 'div' );
@@ -382,7 +396,7 @@
                 reponse_reduire.classList.add( 'hidden' );
                 reponse_agrandir.classList.remove( 'hidden' );
             }
-        }
+        };
         // Event - Clic sur le bouton de réduction
         reponse_agrandir.onclick = function () {
             if ( zone.getAttribute( "style" ) == "z-index: 1031; position:fixed;bottom:5px;padding:10px;height:50px" ) {
@@ -390,7 +404,7 @@
                 reponse_reduire.classList.remove( 'hidden' );
                 reponse_agrandir.classList.add( 'hidden' );
             }
-        }
+        };
 
         // Mémoriser le contenu du post en tant que brouillon, si la page est quittée avec le forumaire non vide
         window.onbeforeunload = function ( event ) {
@@ -399,7 +413,7 @@
                 // Save le brouillon
                 localStorage.setItem( "ss_brouillon", JSON.stringify( saisie ) );
             }
-        }
+        };
         // Supprimer le brouillon si le post est envoyé
         document.querySelector( '.zoneNouveauFormulairePosts form' ).onsubmit = function () {
             envoiFormulaire = true;
@@ -611,7 +625,7 @@
                     lien404.appendChild( image404 );
                     // Remplacer la video par le lien
                     video.parentNode.replaceChild( lien404, video );
-                }
+                };
 
             } else {
                 // .WEBM et .MP4
@@ -637,7 +651,7 @@
                         lien404.appendChild( image404 );
                         // Remplacer la video par le lien
                         video.parentNode.replaceChild( lien404, video );
-                    }
+                    };
                 }
             }
 
@@ -709,7 +723,7 @@
                     e.textContent = '[Afficher]';
                     e.nextSibling.style.display = 'none';
                 }
-            }
+            };
         } );
     }
 
@@ -731,7 +745,7 @@
             e.remove();
         } );
         doc.querySelectorAll( '.topics > tbody > tr' ).forEach( function ( e ) {
-            document.querySelector( '.topics > tbody' ).appendChild( e )
+            document.querySelector( '.topics > tbody' ).appendChild( e );
         } );
     }
 
@@ -789,7 +803,7 @@
             // Si on clique sur le bouton pour couper l'auto-refresh...
             if ( !boutonRefresh.classList.contains( 'btn-grey' ) ) {
                 // Mémoriser l'état
-                parametres[ "etat_autorefresh_topics" ] = false;
+                parametres.etat_autorefresh_topics = false;
                 localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Couper l'autorefresh
                 boutonRefresh.classList.add( 'btn-grey' );
@@ -797,23 +811,23 @@
             } else {
                 autorefreshTopics( 0 );
             }
-        }
+        };
         // Event - Double clic sur le bouton refresh
         boutonRefresh.ondblclick = function () {
             // Si on double-clique sur le bouton pour allumer l'auto-refresh...
             if ( boutonRefresh.classList.contains( 'btn-grey' ) ) {
                 // Mémoriser l'état
-                parametres[ "etat_autorefresh_topics" ] = true;
+                parametres.etat_autorefresh_topics = true;
                 localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
                 // Allumer autorefresh
                 boutonRefresh.classList.add( 'btn-success' );
                 boutonRefresh.classList.remove( 'btn-grey' );
                 autorefreshTopics( 1 );
             }
-        }
+        };
 
         // Activation auto de l'autorefresh, si déjà activé sur la page précédente
-        if ( parametres[ "etat_autorefresh_topics" ] == true ) {
+        if ( parametres.etat_autorefresh_topics == true ) {
             boutonRefresh.ondblclick();
         }
     }
@@ -864,12 +878,13 @@
     ////////////////////
 
     function ajoutRechercheMPs() {
-        let modalRecherche = '<!-- MODAL RECHERCE--><div class="modal fade" id="modalRecherche" tabindex="-1" role="dialog" aria-labelledby="modalRechercheLabel"> <div class="modal-dialog modal-lg" role="document"><div class="modal-content"><div class="modal-header" style="background-image: linear-gradient(to bottom right, black, lightgrey);"> <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> <h4 class="modal-title" id="modalRechercheLabel"><img id="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></h4></div><div class="modal-body" style="overflow-y:scroll;max-height:75vh"><div class="col-md-12"> <div class="row"> <div class="col-md-12"> <div class="row"><!-- Filtres de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Filtres de recherche</h4> <br> <div class="row"> <div class="col-md-6"> <input type="text" class="form-control inputFiltreAuteur" placeholder="Auteur"> </div> <div class="col-md-6"> <input type="text" class="form-control inputFiltreContenu" placeholder="Contenu"> </div> </div></div> <div class="panel-footer"> <button id="btn-recherche" class="btn btn-primary" type="button">Rechercher</button> </div> </div><!-- Barre de progrssion --> <div class="progress progression_recherche hidden" style="margin-top:20px"> <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width:0%"> 0% </div> </div><!-- Résultats de recherche --> <div class="panel panel-default"> <div class="panel-body"> <h4>Résultats de recherche</h4> <br> <div class="zone-resultats-recherche row" style="padding:10px"> </div> </div> </div></div> </div> </div></div></div><div class="modal-footer"> <button type="button" class="btn grey-btn" data-dismiss="modal">Fermer</button></div></div> </div> </div>';
+        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.2</span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         let zoneRecherche = document.createElement( 'div' );
-        zoneRecherche.setAttribute( "id", "zoneRecherche" )
+        zoneRecherche.setAttribute( "id", "zoneRecherche" );
+        zoneRecherche.setAttribute( "class", "ss-panel-container" );
         zoneRecherche.innerHTML = modalRecherche;
-        document.querySelector( '.main-container' ).appendChild( zoneRecherche );
+        document.querySelector( 'body' ).appendChild( zoneRecherche );
 
         // Retirer la classe "col-md-2" au bouton refresh qui rend moche
         document.querySelector( '.topic-title' ).nextElementSibling.nextElementSibling.querySelector( '.col-md-2' ).classList.remove( 'col-md-2' );
@@ -877,8 +892,6 @@
         // Ajout du bouton de recherche
         let btnRechercher = document.createElement( 'button' );
         btnRechercher.setAttribute( "style", "margin-right:3px" );
-        btnRechercher.setAttribute( "data-toggle", "modal" );
-        btnRechercher.setAttribute( "data-target", "#modalRecherche" );
         btnRechercher.setAttribute( "class", "btn btn-primary btn-rechercher pull-right" );
         btnRechercher.innerText = 'Rechercher';
         document.querySelector( '.topic-title' ).nextElementSibling.nextElementSibling.append( btnRechercher );
@@ -886,14 +899,28 @@
         // Event - Clic sur le bouton de recherche
         document.getElementById( 'btn-recherche' ).onclick = function () {
             rechercheMP();
-        }
+        };
+
+        // Event - Clic sur le bouton d'ouverture du panel de recherche
+        document.querySelector( '.btn-rechercher' ).onclick = function () {
+            let modal = document.getElementById( "ss-modal-recherche" );
+            modal.style.display = "flex";
+        };
+
+        // Event - Clic sur un bouton de fermeture du panel de recherche
+        document.querySelectorAll( '#ss-modal-recherche .ss-panel-close' ).forEach( ( e ) => {
+            e.onclick = function () {
+                let modal = document.getElementById( "ss-modal-recherche" );
+                modal.style.display = "none";
+            };
+        } );
 
         async function rechercheMP() {
-            let progressbar = document.querySelector( '.progression_recherche' );
-            let filtre_auteur = document.querySelector( '.inputFiltreAuteur' ).value;
-            let filtre_contenu = document.querySelector( '.inputFiltreContenu' ).value;
+            let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" )
+            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value;
+            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value;
 
-            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' )
+            let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' );
             let page_max = pagination[pagination.length - 2].innerText;
             let id_topic = /messagerie\/([0-9]+)-/.exec( path )[ 1 ];
 
@@ -915,12 +942,12 @@
                 } );
                 // Affichage progressbar
                 let pourcentage = Math.ceil( page * 100 / page_max );
-                progressbar.classList.remove( 'hidden' );
+                progressbar.style.display = "block";
                 progressbar.children[ 0 ].setAttribute( "style", "width:" + pourcentage + "%" );
                 progressbar.children[ 0 ].innerText = pourcentage + '%';
             }
             // Cacher progressbar
-            progressbar.classList.add( 'hidden' );
+            progressbar.style.display = "none";
         }
     }
 
@@ -991,9 +1018,9 @@
         boutonScript.innerHTML = '<a style="height:70px;width:145px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript" height="24"></a>';
         document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
-        let css = '<style type="text/css"> /* SLIDERS */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background {display: none; /* Hidden by default */flex-direction: row;align-items: center;position: fixed; /* Stay in place */z-index: 1; /* Sit on top */left: 0;top: 0;width: 100%; /* Full width */height: 100%; /* Full height */overflow: auto; /* Enable scroll if needed */background-color: rgb(0,0,0); /* Fallback color */background-color: rgba(0,0,0,0.4); /* Black w/ opacity */flex-direction: column; } /* Fermer */ span.ss-panel-close {color: #262626;font-size: 24px;font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus {color: black;text-decoration: none;cursor: pointer; } /* Valider */ .ss-panel-valider { margin-left: 5px; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; max-width: 1200px; max-height: 90%; margin: 20px; }/* ------------------ STRUCTURE ------------------- */ .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .disabled { pointer-events: initial; } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; } /* ------------------PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center;border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a { color: #c8c8c9; background-color: #242529; }/* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) {.ss-mini-panel-xs { width: 100%;} } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:#2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } .ss-table-blacklist-forumeurs { color: #bbb; } #ss-zone-blacklist .ss-mini-panel-xs { border: none; } </style>';
+        let css = '<style type="text/css"> /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; }/* FOND DU PANEL */ .ss-panel-background {display: none; /* Hidden by default */flex-direction: row;align-items: center;position: fixed; /* Stay in place */z-index: 1; /* Sit on top */left: 0;top: 0;width: 100%; /* Full width */height: 100%; /* Full height */overflow: auto; /* Enable scroll if needed */background-color: rgb(0,0,0); /* Fallback color */background-color: rgba(0,0,0,0.4); /* Black w/ opacity */flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close {color: #262626;font-size: 24px;font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus {color: black;text-decoration: none;cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) {.ss-panel { width: 100%;} }/* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; }/* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: initial; } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; }/* ------------------PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center;border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a { color: #c8c8c9; background-color: #242529; }/* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) {.ss-mini-panel-xs { width: 100%;} } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:#2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } </style>';
 
-        let pannelHTML = '<!-- Fond modal--> <div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"><!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des posts par URL</div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div><div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div><div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche dans un MP</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --><!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"><div class="ss-row"> <div class="ss-mini-panel-xs"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div><div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div><div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead> <tr> <th style="width:40px"></th> <th></th> </tr> </thead> <tbody></tbody> </table> </div> </div><div class="ss-mini-panel"> <h3>Niveau de blocage</h3> <div class="ss-col ss-full-width"> <div class="ss-row ss-space-between"> <div style="text-align:left"><p class="ss-label">Faible</p></div><div style="text-align:center"><p class="ss-label">Moyen</p></div><div style="text-align:right"><p class="ss-label">Elevé</p></div> </div><input type="range" class="ss-rg-blacklist-forumeurs" id="ss-rg-blacklist-forumeurs" min="1" max="3"> </div> </div></div> <!-- FIN ONGLET BLACKLIST --></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
+        let pannelHTML = '<!-- Fond modal--> <div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"><!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des posts par URL</div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div><div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div><div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche dans un MP</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --><!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"><div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div><div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div><div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead> <tr> <th style="width:40px"></th> <th></th> </tr> </thead> <tbody></tbody> </table> </div> </div><div class="ss-mini-panel"> <h3>Niveau de blocage</h3> <div class="ss-col ss-full-width"> <div class="ss-row ss-space-between"> <div style="text-align:left"><p class="ss-label">Faible</p></div><div style="text-align:center"><p class="ss-label">Moyen</p></div><div style="text-align:right"><p class="ss-label">Elevé</p></div> </div><input type="range" class="ss-rg-blacklist-forumeurs" id="ss-rg-blacklist-forumeurs" min="1" max="3"> </div> </div></div> <!-- FIN ONGLET BLACKLIST --></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.2</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         pannelHTML += css;
 
@@ -1003,7 +1030,9 @@
         majPannel_Parametres();
 
         // Affichage de la version
-        document.getElementById( 'ss-version' ).innerHTML = 'Version 1.1';
+        document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
+            e.innerHTML = 'Version 1.2';
+        } );
 
         //////////////
         //  BOUTONS  |
@@ -1020,19 +1049,20 @@
                 // Ouvrir l'onglet général par défaut
                 document.getElementById( 'ss-onglet-general' ).click();
             }
-        }
+        };
         // Event - Fermture du pannel
         document.querySelectorAll( ".ss-panel-close" ).forEach( function ( e ) {
             e.onclick = function () {
                 document.getElementById( "ss-panel-background" ).style.display = "none";
-            }
+            };
         } );
-        // Event - Clic sur le background du panel
+        // Event - Clic sur le background de n'importe quel panel
         window.onclick = function ( event ) {
-            if ( event.target == document.getElementById( "ss-panel-background" ) ) {
-                document.getElementById( "ss-panel-background" ).style.display = "none";
+            if ( event.target.classList.contains( 'ss-panel-background' ) ) {
+                // Fermer ce panel
+                event.target.style.display = "none";
             }
-        }
+        };
 
         //////////////////////////////////
         //  BOUTONS - BLACKLIST PSEUDOS  |
@@ -1043,16 +1073,16 @@
             let niveau_blacklist_pseudos = document.getElementById( 'ss-rg-blacklist-forumeurs' ).value;
             // Enregistrer dans les parametres
             parametres[ "ss-rg-blacklist-forumeurs" ] = niveau_blacklist_pseudos;
-        }
+        };
         // Event - Blacklist pseudos : Clic bouton d'ajout
         document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).onclick = function () {
-            let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).previousElementSibling.value.trim()
+            let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).previousElementSibling.value.trim();
             if ( pseudo !== "" ) {
                 // Ajouter le pseudo à la liste
                 blacklist_pseudos.push( pseudo );
                 majPannel_BlacklistPseudos();
             }
-        }
+        };
         // Event - Blacklist pseudos : Clic bouton de suppression
         document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).onclick = function () {
             let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).previousElementSibling.value.trim();
@@ -1064,7 +1094,7 @@
                 }
                 majPannel_BlacklistPseudos();
             }
-        }
+        };
 
         ////////////////////////
         //  BOUTONS - ONGLETS  |
@@ -1075,7 +1105,7 @@
             // Onglets
             document.querySelectorAll( '.ss-panel-onglets > div' ).forEach( function ( e ) {
                 e.classList.remove( 'active' );
-            } )
+            } );
             document.getElementById( 'ss-onglet-general' ).classList.add( 'active' );
             // Zones
             document.querySelectorAll( '.ss-panel-body > .ss-zone' ).forEach( function ( e ) {
@@ -1084,15 +1114,15 @@
             document.getElementById( 'ss-zone-general' ).style.display = 'block';
 
             // Mémoriser l'onglet actif
-            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
+            parametres.onglet_actif = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
-        }
+        };
         // Event - Clic sur l'onglet Blacklist
         document.getElementById( 'ss-onglet-blacklist' ).onclick = function () {
             // Onglets
             document.querySelectorAll( '.ss-panel-onglets > div' ).forEach( function ( e ) {
                 e.classList.remove( 'active' );
-            } )
+            } );
             document.getElementById( 'ss-onglet-blacklist' ).classList.add( 'active' );
             // Zones
             document.querySelectorAll( '.ss-panel-body > .ss-zone' ).forEach( function ( e ) {
@@ -1101,9 +1131,9 @@
             document.getElementById( 'ss-zone-blacklist' ).style.display = 'block';
 
             // Mémoriser l'onglet actif
-            parametres[ "onglet_actif" ] = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
+            parametres.onglet_actif = document.getElementById( "stratoscriptPanel" ).querySelector( '.ss-panel-onglets .active' ).id;
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
-        }
+        };
 
         ///////////////////////////
         //  BOUTONS - PARAMETRES  |
