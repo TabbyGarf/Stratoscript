@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.4.2
+// @version      1.5
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -268,7 +268,7 @@
     }
 
     function ajoutRecherchePosts() {
-        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version </span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
+        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="ss-full-width zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version </span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         let zoneRecherche = document.createElement( 'div' );
         zoneRecherche.setAttribute( "id", "zoneRecherche" );
@@ -878,7 +878,7 @@
     ////////////////////
 
     function ajoutRechercheMPs() {
-        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version </span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
+        let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="ss-full-width zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version </span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         let zoneRecherche = document.createElement( 'div' );
         zoneRecherche.setAttribute( "id", "zoneRecherche" );
@@ -1031,7 +1031,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.4.2';
+            e.innerHTML = 'Version 1.5';
         } );
 
         //////////////
