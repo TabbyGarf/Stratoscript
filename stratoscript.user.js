@@ -1031,7 +1031,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.4';
+            e.innerHTML = 'Version 1.4.1';
         } );
 
         //////////////
