@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.4.1
+// @version      1.4.2
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -1031,7 +1031,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.4.1';
+            e.innerHTML = 'Version 1.4.2';
         } );
 
         //////////////
