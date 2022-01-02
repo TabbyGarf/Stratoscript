@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.7.1
+// @version      1.8
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -33,6 +33,14 @@
         parametres = localStorage_chargement( "ss_parametres" );
         blacklist_pseudos = localStorage_chargement( "ss_blacklist_pseudos" );
 
+        // Purger la BL si les données chargées sont dans un mauvais format
+        function isObject( val ) {
+            return val instanceof Object;
+        }
+        if ( blacklist_pseudos.length > 0 && !isObject( blacklist_pseudos[ 0 ] ) ) {
+            blacklist_pseudos = [];
+        }
+
         // TOUTES LES PAGES, SAUF LE PANNEL ADMIN
         if ( !path.startsWith( "/admin" ) ) {
             // Ajouter la zone du pannel de configuration du script dans la page
@@ -47,18 +55,18 @@
         }
         // TOPIC
         if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
-            // Modifier le contenu (blacklist...)
-            modifPosts( document );
+            // Appliquer la blacklist (1ère couche)
+            appliquer_blacklist_posts( document );
         }
         // LISTE DES TOPICS
         if ( path.startsWith( "/forum" ) || path.startsWith( "/index.php/forum" ) ) {
-            // Modifier le contenu (blacklist...)
-            modifListeTopics( document );
+            // Appliquer la blacklist (1ère couche)
+            appliquer_blacklist_topics( document );
         }
     }
 
     async function initialisation() {
-        // Script Tweeter
+        // Script Twiter
         if ( parametres[ "sw-twitter" ] == true ) {
             var s = document.createElement( "script" );
             s.type = "text/javascript";
@@ -69,28 +77,20 @@
 
         // TOUTES LES PAGES, SAUF LE PANNEL ADMIN
         if ( !path.startsWith( "/admin" ) ) {
+            // Ajouter les raccourcis pour mobile dans le dropdown de la navbar
+            addMobileBtn( 'Mes messages', 'https://avenoel.org/mes-messages' );
+            addMobileBtn( 'Topics favoris', 'https://avenoel.org/favoris' );
+            addMobileBtn( 'Modération', 'https://avenoel.org/moderation' );
             // Créer le pannel de config du script
             creerPannelStratoscript();
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations();
-            // Racourcis Mobile
-            function addMobileBtn( titre, url ) {
-                // Créer le bouton
-                let ulBtn = document.createElement('li');
-                let aBtn = document.createElement('a');
-                aBtn.innerText = titre;
-                ulBtn.setAttribute('class','racourciMobile');
-                aBtn.setAttribute('href', url);
-                ulBtn.appendChild(aBtn);
-                // Ajouter à la navbar
-                document.querySelector('.nav.navbar-nav.navbar-links').appendChild(ulBtn);
-            }
-            addMobileBtn('Mes messages','https://avenoel.org/mes-messages');
-            addMobileBtn('Topics favoris','https://avenoel.org/favoris');
-            addMobileBtn('Modération','https://avenoel.org/moderation');
         }
         // TOPIC
         if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
+            // Appliquer la blacklist (2ème couche)
+            appliquer_blacklist_posts( document );
+
             if ( parametres[ "sw-refresh-posts" ] == true ) {
                 ajoutAutorefreshPosts();
             }
@@ -107,6 +107,9 @@
         }
         // LISTE DES TOPICS
         if ( path.startsWith( "/forum" ) || path.startsWith( "/index.php/forum" ) ) {
+            // Appliquer la blacklist (2ème couche)
+            appliquer_blacklist_topics( document );
+
             if ( parametres[ "sw-refresh-topics" ] == true && !path.startsWith( "/forum/recherche" ) ) {
                 ajoutAutorefreshTopics();
             }
@@ -178,8 +181,8 @@
         // Récupérer la liste des posts
         let url_topic = "https://avenoel.org" + path;
         let doc = await getDoc( url_topic );
-        // Modifier le contenu (blacklist, etc..)
-        modifPosts( doc );
+        // Appliquer la blacklist
+        appliquer_blacklist_posts( doc );
         // Stoper l'animation refresh
         document.querySelectorAll( '#btn-autorefresh-posts' ).forEach( function ( e ) {
             e.classList.remove( "processing" );
@@ -480,45 +483,73 @@
         */
     }
 
-    // Modifications exclusives à la liste des posts d'un topic
-    async function modifPosts( page ) {
+    // Appliquer la blacklist sur les posts
+    async function appliquer_blacklist_posts( page ) {
         let niveau_blocage = 2;
         if ( parametres[ "ss-rg-blacklist-forumeurs" ] != null && parametres[ "ss-rg-blacklist-forumeurs" ] != '' ) {
             niveau_blocage = parametres[ "ss-rg-blacklist-forumeurs" ];
         }
+        // Couleur du post
+        let prochain_post_bleu = true;
         // Parcourir tous les messages du topic
         page.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
             // Appliquer la blacklist de pseudos
-            let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
-
-            if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
-                if ( niveau_blocage == 1 ) {
-                    e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
-                    e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                } else if ( niveau_blocage == 2 ) {
-                    e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
-                    e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                } else if ( niveau_blocage == 3 ) {
-                    e.remove();
+            let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
+            blacklist_pseudos.forEach( function ( e_blackist, i ) {
+                // Si l'auteur du post est BL
+                if ( pseudo == e_blackist.pseudo ) {
+                    // Si l'auteur du post est BL
+                    if ( e_blackist.blocage_posts == 2 ) {
+                        e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
+                        e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
+                    } else if ( e_blackist.blocage_posts == 3 ) {
+                        e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
+                        e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
+                    } else if ( e_blackist.blocage_posts == 4 ) {
+                        e.remove();
+                        // Màj couleur post
+                        prochain_post_bleu = !prochain_post_bleu;
+                    }
                 }
+            } );
+            // Gérer les couleurs des posts en cas de suppression
+            if ( prochain_post_bleu && !e.classList.contains( 'odd' ) ) {
+                e.classList.add( 'odd' );
             }
+            if ( !prochain_post_bleu && e.classList.contains( 'odd' ) ) {
+                e.classList.remove( 'odd' );
+            }
+            // Màj couleur post
+            prochain_post_bleu = !prochain_post_bleu;
         } );
 
         // Parcourir toutes les citations du topic
         page.querySelectorAll( 'blockquote' ).forEach( function ( e ) {
             // Appliquer la blacklist de pseudos
             if ( e.querySelector( '.message-content-quote-author' ) ) {
-                let pseudo = e.querySelector( '.message-content-quote-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
+                let pseudo = e.querySelector( '.message-content-quote-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
 
-                if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
-                    if ( niveau_blocage == 2 ) {
-                        e.textContent = " [ Contenu blacklisté ] ";
-                    } else if ( niveau_blocage == 3 ) {
-                        e.parentNode.parentNode.parentNode.remove();
+                blacklist_pseudos.forEach( function ( e_blackist, i ) {
+                    // Si l'auteur du post est BL
+                    if ( pseudo == e_blackist.pseudo ) {
+                        // Si l'auteur du post est BL
+                        if ( e_blackist.blocage_citations == 2 ) {
+                            let pseudo_cite = document.querySelector( 'blockquote' ).querySelector( '.message-content-quote-caption' );
+                            let div = document.createElement( 'div' );
+                            div.innerText = '[ Contenu blacklisté ]';
+                            e.innerHTML = "";
+                            e.appendChild( pseudo_cite );
+                            e.appendChild( div );
+                        } else if ( e_blackist.blocage_citations == 3 ) {
+                            e.textContent = " [ Contenu blacklisté ] ";
+                        } else if ( e_blackist.blocage_citations == 4 ) {
+                            e.parentNode.parentNode.parentNode.remove();
+                        }
                     }
-                }
+                } );
             }
         } );
+
     }
 
     // Intégrations
@@ -555,10 +586,10 @@
                 let urlCorrige = e.getAttribute( 'href' );
 
                 // Odysee - Lecteurs
-                if ( parametres[ "sw-odysee" ] == true && urlCorrige.match( /https:\/\/odysee\.com\/(@.+)\/(.+):(.+)/ ) ) {
+                if ( parametres[ "sw-odysee" ] == true && urlCorrige.match( /https:\/\/odysee\.com\/(@.+)\/(.+:.+)/ ) ) {
                     // Créer le lecteur
                     let lecteurOdysee = document.createElement( "iframe" );
-                    let id_video = /https:\/\/odysee\.com\/(@.+)\/(.+):(.+)/.exec( urlCorrige )[ 2 ];
+                    let id_video = /https:\/\/odysee\.com\/(@.+)\/(.+:.+)/.exec( urlCorrige )[ 2 ];
                     lecteurOdysee.setAttribute( "id", "lbry-iframe" );
                     lecteurOdysee.setAttribute( "width", "380" );
                     lecteurOdysee.setAttribute( "height", "214" );
@@ -566,8 +597,6 @@
                     lecteurOdysee.setAttribute( "allowfullscreen", "allowfullscreen" );
                     // Ramplacer le lien par le lecteur
                     e.parentNode.replaceChild( lecteurOdysee, e );
-
-                    console.log( "https://odysee.com/$/embed/" + id_video );
                 }
             }
 
@@ -754,8 +783,8 @@
         document.querySelector( '.btn-autorefresh-topics' ).classList.add( 'processing' );
         // Récupérer la liste des topics à la bonne page
         let doc = await getDoc( document.location );
-        // Modifier le contenu (blacklist...)
-        modifListeTopics( doc );
+        // Appliquer la blacklist
+        appliquer_blacklist_topics( doc );
         // Stoper l'animation refresh
         document.querySelector( '.btn-autorefresh-topics' ).classList.remove( 'processing' );
         // Afficher les topics
@@ -781,27 +810,25 @@
         }
     }
 
-    // Modif de la liste des topics
-    function modifListeTopics( page ) {
-
-        let niveau_blocage = 2;
-        if ( parametres[ "ss-rg-blacklist-forumeurs" ] != null && parametres[ "ss-rg-blacklist-forumeurs" ] != '' ) {
-            niveau_blocage = parametres[ "ss-rg-blacklist-forumeurs" ];
-        }
+    // Appliquer la blacklist sur la liste des topics
+    function appliquer_blacklist_topics( page ) {
         // Parcourir les topics de la liste des topics
         page.querySelectorAll( '.topics > tbody > tr' ).forEach( ( e ) => {
             // Appliquer la blacklist de pseudos
-            let pseudo = e.querySelector( '.topics-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" );
+            let pseudo = e.querySelector( '.topics-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
+            blacklist_pseudos.forEach( function ( e_blackist, i ) {
+                // Si l'auteur du post est BL
+                if ( pseudo == e_blackist.pseudo ) {
+                    if ( e_blackist.blocage_topics == 2 ) {
+                        e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
+                    } else if ( e_blackist.blocage_topics == 3 ) {
+                        e.innerHTML = '<td></td><td class="topics-title">[ Contenu blacklisté ]</td><td></td><td></td><td></td>';
+                    } else if ( e_blackist.blocage_topics == 4 ) {
+                        e.remove();
+                    }
 
-            if ( blacklist_pseudos.indexOf( pseudo ) >= 0 ) {
-                if ( niveau_blocage == 1 ) {
-                    e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
-                } else if ( niveau_blocage == 2 ) {
-                    e.innerHTML = '<td></td><td class="topics-title">[ Contenu blacklisté ]</td><td></td><td></td><td></td>';
-                } else if ( niveau_blocage == 3 ) {
-                    e.remove();
                 }
-            }
+            } );
         } );
     }
 
@@ -1053,13 +1080,63 @@
         } );
         // Parcourir la blacklist et remplir le tableau
         let corpsTableau = document.getElementById( 'ss-table-blacklist-forumeurs' ).getElementsByTagName( 'tbody' )[ 0 ];
-        for ( let i = 0; i < blacklist_pseudos.length; ++i ) {
+        blacklist_pseudos.forEach( ( e, i ) => {
+            // Colonnes
             let row = corpsTableau.insertRow( 0 );
-            let cell1 = row.insertCell( 0 );
-            let cell2 = row.insertCell( 1 );
-            cell1.innerHTML = '<span class="glyphicon glyphicon-user"></span>';
-            cell2.textContent = blacklist_pseudos[ i ];
-        }
+            let cell_icone = row.insertCell( 0 );
+            let cell_pseudo = row.insertCell( 1 );
+            let cell_topics = row.insertCell( 2 );
+            let cell_posts = row.insertCell( 3 );
+            let cell_citations = row.insertCell( 4 );
+            // Icone
+            cell_icone.innerHTML = '<span class="glyphicon glyphicon-user"></span>';
+            // Pseudo
+            cell_pseudo.textContent = e.pseudo;
+            cell_pseudo.setAttribute( 'id', 'ss-bl-pseudo' );
+            // Range topics
+            let input_topics = document.createElement( 'input' );
+            input_topics.setAttribute( 'type', 'range' );
+            input_topics.setAttribute( 'id', '#ss-bl-topics' );
+            input_topics.setAttribute( 'class', 'ss-full-width' );
+            input_topics.setAttribute( 'min', '1' );
+            input_topics.setAttribute( 'max', '4' );
+            input_topics.value = e.blocage_topics;
+            cell_topics.appendChild( input_topics );
+            // Range posts
+            let input_posts = document.createElement( 'input' );
+            input_posts.setAttribute( 'type', 'range' );
+            input_posts.setAttribute( 'id', '#ss-bl-posts' );
+            input_posts.setAttribute( 'class', 'ss-full-width' );
+            input_posts.setAttribute( 'min', '1' );
+            input_posts.setAttribute( 'max', '4' );
+            input_posts.value = e.blocage_posts;
+            cell_posts.appendChild( input_posts );
+            // Range citations
+            let input_citations = document.createElement( 'input' );
+            input_citations.setAttribute( 'type', 'range' );
+            input_citations.setAttribute( 'id', '#ss-bl-citations' );
+            input_citations.setAttribute( 'class', 'ss-full-width' );
+            input_citations.setAttribute( 'min', '1' );
+            input_citations.setAttribute( 'max', '4' );
+            input_citations.value = e.blocage_citations;
+            cell_citations.appendChild( input_citations );
+            // Events - Modif niveau de blocage
+            cell_topics.onclick = function () {
+                let nouveau_niveau = input_topics.value;
+                // Mémoriser le nouveau niveau pour les topics
+                e.blocage_topics = nouveau_niveau;
+            };
+            cell_posts.onclick = function () {
+                let nouveau_niveau = input_posts.value;
+                // Mémoriser le nouveau niveau pour les posts
+                e.blocage_posts = nouveau_niveau;
+            };
+            cell_citations.onclick = function () {
+                let nouveau_niveau = input_citations.value;
+                // Mémoriser le nouveau niveau pour les citations
+                e.blocage_citations = nouveau_niveau;
+            };
+        } );
     }
 
     // Mise à jour des parametres sur le pannel
@@ -1087,8 +1164,6 @@
         document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mp" ];
         // Mes messages
         document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mes-messages" ];
-        // Blacklist forumeurs
-        document.getElementById( 'ss-rg-blacklist-forumeurs' ).value = parametres[ "ss-rg-blacklist-forumeurs" ];
     }
 
     // Virer les trucs abandonnés sur l'interface
@@ -1103,6 +1178,19 @@
         document.querySelectorAll( '.aside li' )[ 2 ].remove();
     }
 
+    // Racourcis pour version mobile (mes messages, topics favoris et modération)
+    function addMobileBtn( titre, url ) {
+        // Créer le bouton
+        let ulBtn = document.createElement( 'li' );
+        let aBtn = document.createElement( 'a' );
+        aBtn.innerText = titre;
+        ulBtn.setAttribute( 'class', 'ss-mobile-only' );
+        aBtn.setAttribute( 'href', url );
+        ulBtn.appendChild( aBtn );
+        // Ajouter à la navbar
+        document.querySelector( '.nav.navbar-nav.navbar-links' ).appendChild( ulBtn );
+    }
+
     // Créer le pannel de configuration du script
     function creerPannelStratoscript() {
         // Ajouter le bouton du script dans la barre de navigation
@@ -1110,9 +1198,9 @@
         boutonScript.innerHTML = '<a style="height:70px;width:55px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/29iypJm.png" alt="Stratoscript" height="24"></a>';
         document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
-        let css = '<style type="text/css"> @media screen and (min-width: 768px) { .racourciMobile { display: none !important; } }/* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; }/* FOND DU PANEL */ .ss-panel-background {display: none; /* Hidden by default */flex-direction: row;align-items: center;position: fixed; /* Stay in place */z-index: 1; /* Sit on top */left: 0;top: 0;width: 100%; /* Full width */height: 100%; /* Full height */overflow: auto; /* Enable scroll if needed */background-color: rgb(0,0,0); /* Fallback color */background-color: rgba(0,0,0,0.4); /* Black w/ opacity */flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close {color: #262626;font-size: 24px;font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus {color: black;text-decoration: none;cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } }/* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; }/* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: initial; } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; color:#242529; }/* ------------------PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center;border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a { color: #c8c8c9; background-color: #242529; }/* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:#2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.7; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } </style>';
+        let css = '<style type="text/css"> /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: initial; } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; color:#242529; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:#2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } </style>';
 
-        let pannelHTML = '<!-- Fond modal--> <div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"><!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div><div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div><div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div><div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div><div class="ss-mini-panel"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --><!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"><div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div><div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div><div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead> <tr> <th style="width:40px"></th> <th></th> </tr> </thead> <tbody></tbody> </table> </div> </div><div class="ss-mini-panel"> <h3>Niveau de blocage</h3> <div class="ss-col ss-full-width"> <div class="ss-row ss-space-between"> <div style="text-align:left"><p class="ss-label">Faible</p></div><div style="text-align:center"><p class="ss-label">Moyen</p></div><div style="text-align:right"><p class="ss-label">Elevé</p></div> </div><input type="range" class="ss-rg-blacklist-forumeurs" id="ss-rg-blacklist-forumeurs" min="1" max="3"> </div> </div></div> <!-- FIN ONGLET BLACKLIST --></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
+        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: none;"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> </div> </div> <!-- FIN ONGLET BLACKLIST --> </div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
 
         pannelHTML += css;
 
@@ -1123,12 +1211,12 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.7.1';
+            e.innerHTML = 'Version 1.8';
         } );
 
-        //////////////
-        //  BOUTONS  |
-        //////////////
+        /////////////
+        //  EVENTS  |
+        /////////////
 
         // Event - Ouverture du pannel
         document.querySelector( '.btnStratoscript' ).onclick = function () {
@@ -1156,41 +1244,56 @@
             }
         };
 
-        //////////////////////////////////
-        //  BOUTONS - BLACKLIST PSEUDOS  |
-        //////////////////////////////////
+        /////////////////////////////////
+        //  EVENTS - BLACKLIST PSEUDOS  |
+        /////////////////////////////////
 
-        // Event - Blacklist pseudos : Changement du niveau de blocage
-        document.getElementById( 'ss-rg-blacklist-forumeurs' ).onclick = function () {
-            let niveau_blacklist_pseudos = document.getElementById( 'ss-rg-blacklist-forumeurs' ).value;
-            // Enregistrer dans les parametres
-            parametres[ "ss-rg-blacklist-forumeurs" ] = niveau_blacklist_pseudos;
-        };
         // Event - Blacklist pseudos : Clic bouton d'ajout
         document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).onclick = function () {
             let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).previousElementSibling.value.trim();
-            if ( pseudo !== "" ) {
+            let dejaBL = false;
+            blacklist_pseudos.forEach( function ( e ) {
+                if ( e.pseudo == pseudo ) 
+                    dejaBL = true;
+                }
+            );
+            if ( pseudo !== "" && !dejaBL ) {
+                let nv_pseudo_bl = {
+                    pseudo: pseudo,
+                    blocage_topics: 2,
+                    blocage_posts: 2,
+                    blocage_citations: 2
+                };
+                blacklist_pseudos.push( nv_pseudo_bl );
                 // Ajouter le pseudo à la liste
-                blacklist_pseudos.push( pseudo );
                 majPannel_BlacklistPseudos();
+                // Vider le champs
+                document.getElementById( 'ss-btn_blacklist_forumeurs_ajout' ).previousElementSibling.value = "";
             }
         };
         // Event - Blacklist pseudos : Clic bouton de suppression
         document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).onclick = function () {
             let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).previousElementSibling.value.trim();
             if ( pseudo !== "" ) {
-                // Retirer de la liste
-                let index = blacklist_pseudos.indexOf( pseudo );
-                if ( index !== -1 ) {
-                    blacklist_pseudos.splice( index, 1 );
+                let index_a_suppr = []
+                blacklist_pseudos.forEach( function ( e, i ) {
+                    if ( e.pseudo == pseudo ) {
+                        index_a_suppr.push( i )
+                    }
+                } );
+                // Parcourir à l'envers et supprimer (car la suppression nique les index)
+                for ( var i = index_a_suppr.length - 1; i >= 0; i-- ) {
+                    blacklist_pseudos.splice( index_a_suppr[i], 1 );
                 }
                 majPannel_BlacklistPseudos();
+                // Vider le champs
+                document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).previousElementSibling.value = "";
             }
         };
 
-        ////////////////////////
-        //  BOUTONS - ONGLETS  |
-        ////////////////////////
+        ///////////////////////
+        //  EVENTS - ONGLETS  |
+        ///////////////////////
 
         // Event - Clic sur l'onglet Général
         document.getElementById( 'ss-onglet-general' ).onclick = function () {
@@ -1227,14 +1330,17 @@
             localStorage.setItem( "ss_parametres", JSON.stringify( parametres ) );
         };
 
-        ///////////////////////////
-        //  BOUTONS - PARAMETRES  |
-        ///////////////////////////
+        //////////////////////////
+        //  EVENTS - PARAMETRES  |
+        //////////////////////////
 
         // Event - Clic sur le bouton de validation des paramètres
         document.querySelectorAll( '#btn-validation-parametres' ).forEach( function ( e ) {
             e.onclick = function () {
+                let onglet_actif = parametres.onglet_actif;
                 parametres = {};
+                // Onglet actif
+                parametres[ "onglet_actif" ] = onglet_actif;
                 // Toutes les pages
                 parametres[ "sw-corr-url-odysee" ] = document.getElementById( 'sw-corr-url-odysee' ).querySelector( 'input' ).checked;
                 parametres[ "sw-odysee" ] = document.getElementById( 'sw-odysee' ).querySelector( 'input' ).checked;
@@ -1257,8 +1363,6 @@
                 parametres[ "sw-recherche-mp" ] = document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked;
                 // Mes messages
                 parametres[ "sw-recherche-mes-messages" ] = document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked;
-                // Blacklist forumeurs
-                parametres[ "ss-rg-blacklist-forumeurs" ] = document.getElementById( 'ss-rg-blacklist-forumeurs' ).value;
                 // Mettre à jour le LocalStorage
                 localStorage_save( parametres, "ss_parametres" );
                 localStorage_save( blacklist_pseudos, "ss_blacklist_pseudos" );
