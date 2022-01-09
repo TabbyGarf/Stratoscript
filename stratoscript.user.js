@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.8.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -1121,17 +1121,17 @@
             input_citations.value = e.blocage_citations;
             cell_citations.appendChild( input_citations );
             // Events - Modif niveau de blocage
-            cell_topics.onclick = function () {
+            input_topics.onchange = function () {
                 let nouveau_niveau = input_topics.value;
                 // Mémoriser le nouveau niveau pour les topics
                 e.blocage_topics = nouveau_niveau;
             };
-            cell_posts.onclick = function () {
+            input_posts.onchange = function () {
                 let nouveau_niveau = input_posts.value;
                 // Mémoriser le nouveau niveau pour les posts
                 e.blocage_posts = nouveau_niveau;
             };
-            cell_citations.onclick = function () {
+            input_citations.onchange = function () {
                 let nouveau_niveau = input_citations.value;
                 // Mémoriser le nouveau niveau pour les citations
                 e.blocage_citations = nouveau_niveau;
@@ -1141,7 +1141,6 @@
 
     // Mise à jour des parametres sur le pannel
     function majPannel_Parametres() {
-        console.log( parametres );
         // Toutes les pages
         document.getElementById( 'sw-corr-url-odysee' ).querySelector( 'input' ).checked = parametres[ "sw-corr-url-odysee" ];
         document.getElementById( 'sw-odysee' ).querySelector( 'input' ).checked = parametres[ "sw-odysee" ];
@@ -1211,7 +1210,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8';
+            e.innerHTML = 'Version 1.8.1';
         } );
 
         /////////////
