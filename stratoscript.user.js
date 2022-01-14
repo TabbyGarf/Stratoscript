@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.1
+// @version      1.8.2
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -85,6 +85,8 @@
             creerPannelStratoscript();
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations();
+            // Avatar anti-golem pour les sans-avatar
+            sansAvatar_antiGolem();
         }
         // TOPIC
         if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
@@ -210,6 +212,8 @@
         ajoutLecteursEtIntegrations();
         // Spoilers
         ajoutSpoilers();
+        // Sans-avatar Anti-golems
+        sansAvatar_antiGolem();
     }
 
     // Refresh et autorefresh
@@ -1072,6 +1076,18 @@
     //  Interface - Toutes les pages  |
     ///////////////////////////////////
 
+    // Sans-avatar anti-golem
+    function sansAvatar_antiGolem() {
+        setTimeout( function () {
+            document.querySelectorAll( 'article .message-avatar > img, article img.avatar-thumb' ).forEach( function ( e ) {
+                let avatar = e;
+                if ( avatar.getAttribute( 'src' ) == '/images/noavatar.png' ) {
+                    avatar.setAttribute( 'src', 'https://i.imgur.com/tpGuPkP.png' );
+                }
+            } );
+        }, 50 );
+    }
+
     // Mise à jour de la blacklist personnelle des pseudos sur le pannel
     function majPannel_BlacklistPseudos() {
         // Vider le tableau
@@ -1210,7 +1226,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.1';
+            e.innerHTML = 'Version 1.8.2';
         } );
 
         /////////////
