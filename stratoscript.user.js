@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.2
+// @version      1.8.3
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -329,8 +329,8 @@
 
         async function rechercheTopic() {
             let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" )
-            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value.toLowerCase();
-            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value.toLowerCase();
+            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value.toLowerCase().trim();
+            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value.toLowerCase().trim();
 
             let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' );
             let page_max = pagination[pagination.length - 2].innerText;
@@ -345,10 +345,10 @@
                 let doc = await getDoc( url );
                 // Parcourir les posts
                 doc.querySelectorAll( '.topic-messages > .topic-message' ).forEach( function ( e ) {
-                    let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase();
-                    let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase();
+                    let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase().trim();
+                    let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase().trim();
                     // Si les filtres matchent
-                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && !( auteur.indexOf( filtre_auteur ) == -1 ) ) {
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur ) ) {
                         document.querySelector( '.zone-resultats-recherche' ).append( e );
                     }
                 } );
@@ -966,8 +966,8 @@
 
         async function rechercheMP() {
             let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" );
-            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value.toLowerCase();
-            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value.toLowerCase();
+            let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value.toLowerCase().trim();
+            let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value.toLowerCase().trim();
 
             let pagination = document.querySelector( '.pagination-topic ' ).querySelectorAll( 'li' );
             let page_max = pagination[pagination.length - 2].innerText;
@@ -982,10 +982,10 @@
                 let doc = await getDoc( url );
                 // Parcourir les posts
                 doc.querySelectorAll( '.topic-messages > .topic-message' ).forEach( function ( e ) {
-                    let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase();
-                    let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase();
+                    let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase().trim();
+                    let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase().trim();
                     // Si les filtres matchent
-                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && !( auteur.indexOf( filtre_auteur ) == -1 ) ) {
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur ) ) {
                         document.querySelector( '.zone-resultats-recherche' ).append( e );
                     }
                 } );
@@ -1226,7 +1226,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.2';
+            e.innerHTML = 'Version 1.8.3';
         } );
 
         /////////////
