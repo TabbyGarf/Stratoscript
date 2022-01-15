@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.4
+// @version      1.8.5
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -497,34 +497,37 @@
         let prochain_post_bleu = true;
         // Parcourir tous les messages du topic
         page.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
+
             // Appliquer la blacklist de pseudos
-            let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
-            blacklist_pseudos.forEach( function ( e_blackist, i ) {
-                // Si l'auteur du post est BL
-                if ( pseudo == e_blackist.pseudo ) {
+            if ( e.querySelector( '.message-username' ) ) {
+                let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
+                blacklist_pseudos.forEach( function ( e_blackist, i ) {
                     // Si l'auteur du post est BL
-                    if ( e_blackist.blocage_posts == 2 ) {
-                        e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
-                        e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                    } else if ( e_blackist.blocage_posts == 3 ) {
-                        e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
-                        e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                    } else if ( e_blackist.blocage_posts == 4 ) {
-                        e.remove();
-                        // Màj couleur post
-                        prochain_post_bleu = !prochain_post_bleu;
+                    if ( pseudo == e_blackist.pseudo ) {
+                        // Si l'auteur du post est BL
+                        if ( e_blackist.blocage_posts == 2 ) {
+                            e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
+                            e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
+                        } else if ( e_blackist.blocage_posts == 3 ) {
+                            e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
+                            e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
+                        } else if ( e_blackist.blocage_posts == 4 ) {
+                            e.remove();
+                            // Màj couleur post
+                            prochain_post_bleu = !prochain_post_bleu;
+                        }
                     }
+                } );
+                // Gérer les couleurs des posts en cas de suppression
+                if ( prochain_post_bleu && !e.classList.contains( 'odd' ) ) {
+                    e.classList.add( 'odd' );
                 }
-            } );
-            // Gérer les couleurs des posts en cas de suppression
-            if ( prochain_post_bleu && !e.classList.contains( 'odd' ) ) {
-                e.classList.add( 'odd' );
+                if ( !prochain_post_bleu && e.classList.contains( 'odd' ) ) {
+                    e.classList.remove( 'odd' );
+                }
+                // Màj couleur post
+                prochain_post_bleu = !prochain_post_bleu;
             }
-            if ( !prochain_post_bleu && e.classList.contains( 'odd' ) ) {
-                e.classList.remove( 'odd' );
-            }
-            // Màj couleur post
-            prochain_post_bleu = !prochain_post_bleu;
         } );
 
         // Parcourir toutes les citations du topic
@@ -819,20 +822,22 @@
         // Parcourir les topics de la liste des topics
         page.querySelectorAll( '.topics > tbody > tr' ).forEach( ( e ) => {
             // Appliquer la blacklist de pseudos
-            let pseudo = e.querySelector( '.topics-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
-            blacklist_pseudos.forEach( function ( e_blackist, i ) {
-                // Si l'auteur du post est BL
-                if ( pseudo == e_blackist.pseudo ) {
-                    if ( e_blackist.blocage_topics == 2 ) {
-                        e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
-                    } else if ( e_blackist.blocage_topics == 3 ) {
-                        e.innerHTML = '<td></td><td class="topics-title">[ Contenu blacklisté ]</td><td></td><td></td><td></td>';
-                    } else if ( e_blackist.blocage_topics == 4 ) {
-                        e.remove();
-                    }
+            if ( e.querySelector( '.topics-author' ) ) {
+                let pseudo = e.querySelector( '.topics-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
+                blacklist_pseudos.forEach( function ( e_blackist, i ) {
+                    // Si l'auteur du post est BL
+                    if ( pseudo == e_blackist.pseudo ) {
+                        if ( e_blackist.blocage_topics == 2 ) {
+                            e.querySelector( ".topics-title" ).textContent = ' [ Contenu blacklisté ] ';
+                        } else if ( e_blackist.blocage_topics == 3 ) {
+                            e.innerHTML = '<td></td><td class="topics-title">[ Contenu blacklisté ]</td><td></td><td></td><td></td>';
+                        } else if ( e_blackist.blocage_topics == 4 ) {
+                            e.remove();
+                        }
 
-                }
-            } );
+                    }
+                } );
+            }
         } );
     }
 
@@ -1226,7 +1231,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.4';
+            e.innerHTML = 'Version 1.8.5';
         } );
 
         /////////////
