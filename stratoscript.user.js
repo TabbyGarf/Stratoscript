@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.3
+// @version      1.8.4
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -348,7 +348,7 @@
                     let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase().trim();
                     let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase().trim();
                     // Si les filtres matchent
-                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur ) ) {
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur || filtre_auteur == "" ) ) {
                         document.querySelector( '.zone-resultats-recherche' ).append( e );
                     }
                 } );
@@ -985,7 +985,7 @@
                     let auteur = e.querySelector( '.message-username ' ).innerText.toLowerCase().trim();
                     let contenu = e.querySelector( '.message-content ' ).innerText.toLowerCase().trim();
                     // Si les filtres matchent
-                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur ) ) {
+                    if ( !( contenu.indexOf( filtre_contenu ) == -1 ) && ( auteur == filtre_auteur || filtre_auteur == "" ) ) {
                         document.querySelector( '.zone-resultats-recherche' ).append( e );
                     }
                 } );
@@ -1226,7 +1226,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.3';
+            e.innerHTML = 'Version 1.8.4';
         } );
 
         /////////////
