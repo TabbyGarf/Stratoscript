@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.5
+// @version      1.8.6
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -63,6 +63,22 @@
             // Appliquer la blacklist (1ère couche)
             appliquer_blacklist_topics( document );
         }
+        // PROFIL
+        if ( path.startsWith( "/profil" ) ) {
+            // Corriger les avatars étirés sur mobile
+            let cssImgProfil = document.createElement( 'style' );
+            cssImgProfil.setAttribute( "type", "text/css" );
+            cssImgProfil.innerHTML = `
+               .profile .profile-wrapper .profile-avatar img
+               {
+                   max-height: 200px !important;
+                   height: auto !important;
+                   max-width: 100% !important;
+               }
+               `;
+            document.querySelector( 'body' ).appendChild( cssImgProfil );
+        }
+
     }
 
     async function initialisation() {
@@ -1231,7 +1247,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.5';
+            e.innerHTML = 'Version 1.8.6';
         } );
 
         /////////////
