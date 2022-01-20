@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.6
+// @version      1.8.7
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -516,7 +516,7 @@
 
             // Appliquer la blacklist de pseudos
             if ( e.querySelector( '.message-username' ) ) {
-                let pseudo = e.querySelector( '.message-username' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
+                let pseudo = e.querySelector( '.message-username a' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
                 blacklist_pseudos.forEach( function ( e_blackist, i ) {
                     // Si l'auteur du post est BL
                     if ( pseudo == e_blackist.pseudo ) {
@@ -1247,7 +1247,7 @@
 
         // Affichage de la version
         document.querySelectorAll( '#ss-version' ).forEach( ( e ) => {
-            e.innerHTML = 'Version 1.8.6';
+            e.innerHTML = 'Version 1.8.7';
         } );
 
         /////////////
