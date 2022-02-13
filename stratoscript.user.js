@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.8.9
+// @version      1.9
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.8.9';
+    const version = '1.9';
 
     /* ==========================================================
     |                                                           |
@@ -84,7 +84,6 @@
                `;
             document.querySelector( 'body' ).appendChild( cssImgProfil );
         }
-
     }
 
     async function initialisation() {
@@ -153,6 +152,14 @@
         if ( path.startsWith( "/mes-messages" ) ) {
             ajoutRechercheMesMessages();
         }
+        // PROFIL
+        if ( path.startsWith( "/profil" ) ) {
+            if ( parametres[ "sw-custom-profils" ] == true ) {
+                assistant_profils();
+            }
+
+        }
+
     }
 
     /* ==========================================================
@@ -1155,6 +1162,502 @@
     ///////////////////////////////////
     //  Interface - Toutes les pages  |
     ///////////////////////////////////
+    async function assistant_profils() {
+        // Création de l'assistant de customization de profils
+        let btnEditProfil = document.createElement( 'div' );
+        let icon = document.createElement( 'i' );
+        icon.setAttribute( 'class', 'glyphicon glyphicon-pencil' );
+        icon.setAttribute( 'style', 'font-size: 18px' );
+        btnEditProfil.setAttribute( 'id', 'btnEditProfil' );
+        btnEditProfil.setAttribute( 'class', `ss-bouton-profil` );
+        btnEditProfil.appendChild( icon );
+        let modalEditProfil = document.createElement( 'div' );
+        modalEditProfil.setAttribute( 'id', 'modalEditProfil' );
+        modalEditProfil.setAttribute( 'style', 'width: 370px;display:none' );
+        modalEditProfil.setAttribute( 'class', `ss-popup-profil` );
+        document.querySelector( '.main-container' ).appendChild( btnEditProfil );
+        document.querySelector( '.main-container' ).appendChild( modalEditProfil );
+        let docProfil = await getDoc( 'https://avenoel.org/compte' );
+
+        modalEditProfil.innerHTML = `<h3>Customization</h3><div><b>Avatar</b><input id="ss-input-avatar" type="file" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Fond de profil</b><input id="ss-input-fond" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Musique</b><input id="ss-input-musique" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div style="justify-content: center;"><b>Biographie :</b></div><div><textarea class="form-control" id="ss-biographie" rows="5" maxlength="10000" style="width: 100%"></textarea></div><div style="margin-top: 24px;display: flex;justify-content: space-between;"><div id="ss-slots-profil" style="display:none"><button id="ss-slot1-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 1">1</button><button id="ss-slot2-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 2">2</button><button id="ss-slot3-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 3">3</button></div><div id="ss-load-save-profil"><button id="ss-btn-load-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Charger"><i class="glyphicon glyphicon-open" style="font-size: 18px"></i></button><button id="ss-btn-save-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Sauvegarder"><i class="glyphicon glyphicon-save" style="font-size: 18px"></i></button></div><div><button id="ss-btn-tester-profil" class="ss-btn" type="button" name="button">Visualiser</button><button id="ss-btn-valider-profil" class="ss-btn ss-vert disabled" type="button" name="button">Valider</button></div><button id="ss-btn-retour-profil" class="ss-btn" style="display:none" type="button" name="button">Retour</button></div>`;
+
+        ///////////////////////////////
+        //  Ajouter zones manquantes  |
+        ///////////////////////////////
+        // Bio
+        if ( !document.querySelectorAll( '.surface' )[ 2 ] ) {
+            // Si la zone de bio n'existe pas, la créer
+            let zoneBio = document.createElement( 'div' );
+            zoneBio.setAttribute( 'class', 'surface hidden' );
+            zoneBio.innerHTML = `<div class="text-lg text-on-surface-emphasis font-medium mb-2">Biographie</div><div></div>`;
+            document.querySelector( '.stack' ).appendChild( zoneBio );
+        }
+        // Player Youtube
+        if ( !document.querySelector( '.player-wrapper iframe' ) ) {
+            let player = document.createElement( 'div' );
+            player.setAttribute( 'class', 'text-center hidden' )
+            player.innerHTML = `
+            <div class="player-wrapper">
+                <iframe id="player-null" class="player" frameborder="0" allowfullscreen="1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title="YouTube video player" width="0" height="0" src="https://www.youtube.com/embed/2anxA556cBc?enablejsapi=1&amp;origin=https%3A%2F%2Favenoel.org&amp;widgetid=1"></iframe>
+                <i class="player-toggle glyphicon glyphicon-play"></i>
+            </div>`;
+
+            let parent = document.querySelector( '.stack .surface' );
+            let pseudo = document.querySelector( '.stack .surface h1' );
+            parent.insertBefore( player, pseudo.nextSibling );
+        }
+
+        // Zones du profil
+        let pseudo_profil = document.querySelector( 'h1' ).innerText.trim();
+        let bio_profil = document.querySelectorAll( '.surface' )[ 2 ].querySelectorAll( 'div' )[ 1 ];
+        let avatar_profil = document.querySelectorAll( '.surface' )[ 1 ].querySelector( 'img' );
+        let musique_profil = document.querySelector( '.player-wrapper iframe' );
+        // Input de l'assistant de customization
+        let inputAvatar = document.getElementById( 'ss-input-avatar' );
+        let inputFond = document.getElementById( 'ss-input-fond' );
+        let inputBio = document.getElementById( 'ss-biographie' );
+        let inputMusique = document.getElementById( 'ss-input-musique' );
+        // Obtenir les données du profil par l'API
+        let compte_profil = await getProfilParPseudo( pseudo_profil );
+
+        // Débloquer le bouton "Valider" si propre profil
+        let utilisateur_connecte = document.querySelector( '.navbar-user li a' ).href.match( /.+\/(.+)/ )[ 1 ];
+        if ( utilisateur_connecte == pseudo_profil ) {
+            document.getElementById( 'ss-btn-valider-profil' ).classList.remove( 'disabled' );
+        }
+
+        let slots_affiches = false;
+        let mode_profil;
+
+        // Remplir les inputs au démarrage
+        inputFond.value = compte_profil.profile_background;
+        if ( compte_profil.music ) {
+            inputMusique.value = 'https://www.youtube.com/watch?v=' + compte_profil.music;
+        }
+        inputBio.value = compte_profil.biography;
+
+        ///////////////////////
+        //  BOUTONS ASSISTANT  |
+        ////////////////////////
+        // Clic Retour
+        document.getElementById( 'ss-btn-retour-profil' ).onclick = function () {
+            if ( slots_affiches ) {
+                document.getElementById( 'ss-slots-profil' ).style.display = 'none';
+                document.getElementById( 'ss-btn-retour-profil' ).style.display = 'none';
+                document.getElementById( 'ss-load-save-profil' ).style.display = '';
+                document.getElementById( 'ss-btn-tester-profil' ).style.display = '';
+                document.getElementById( 'ss-btn-valider-profil' ).style.display = '';
+                slots_affiches = false;
+            }
+            mode_profil = null;
+        }
+        // Clic Load
+        document.getElementById( 'ss-btn-load-profil' ).onclick = function () {
+            if ( !slots_affiches ) {
+                document.getElementById( 'ss-slots-profil' ).style.display = '';
+                document.getElementById( 'ss-btn-retour-profil' ).style.display = '';
+                document.getElementById( 'ss-load-save-profil' ).style.display = 'none';
+                document.getElementById( 'ss-btn-tester-profil' ).style.display = 'none';
+                document.getElementById( 'ss-btn-valider-profil' ).style.display = 'none';
+                slots_affiches = true;
+            }
+            mode_profil = 'load';
+        }
+        // Clic Save
+        document.getElementById( 'ss-btn-save-profil' ).onclick = function () {
+            if ( !slots_affiches ) {
+                document.getElementById( 'ss-slots-profil' ).style.display = '';
+                document.getElementById( 'ss-btn-retour-profil' ).style.display = '';
+                document.getElementById( 'ss-load-save-profil' ).style.display = 'none';
+                document.getElementById( 'ss-btn-tester-profil' ).style.display = 'none';
+                document.getElementById( 'ss-btn-valider-profil' ).style.display = 'none';
+                slots_affiches = true;
+            }
+            mode_profil = 'save';
+        }
+        // Clic 1
+        document.getElementById( 'ss-slot1-profil' ).onclick = async function () {
+            if ( mode_profil == 'save' ) {
+                let avatarBase64;
+                if ( inputAvatar.files.length > 0 ) {
+                    // Si avatar dans l'input
+                    avatarBase64 = await inputToBase64( inputAvatar );
+                } else {
+                    // Si pas d'avatar dans l'input, récupérer celui du profil actuel
+                    avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
+                }
+                ssDatabase.mesProfils_add( 1, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+            } else if ( mode_profil == 'load' ) {
+                loadProfil( 1 );
+            }
+            document.getElementById( 'ss-btn-retour-profil' ).click();
+        }
+        // Clic 2
+        document.getElementById( 'ss-slot2-profil' ).onclick = async function () {
+            if ( mode_profil == 'save' ) {
+                let avatarBase64;
+                if ( inputAvatar.files.length > 0 ) {
+                    // Si avatar dans l'input
+                    avatarBase64 = await inputToBase64( inputAvatar );
+                } else {
+                    // Si pas d'avatar dans l'input, récupérer celui du profil actuel
+                    avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
+                }
+                ssDatabase.mesProfils_add( 2, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+            } else if ( mode_profil == 'load' ) {
+                loadProfil( 2 );
+            }
+            document.getElementById( 'ss-btn-retour-profil' ).click();
+        }
+        // Clic 3
+        document.getElementById( 'ss-slot3-profil' ).onclick = async function () {
+            if ( mode_profil == 'save' ) {
+                let avatarBase64;
+                if ( inputAvatar.files.length > 0 ) {
+                    // Si avatar dans l'input
+                    avatarBase64 = await inputToBase64( inputAvatar );
+                } else {
+                    // Si pas d'avatar dans l'input, récupérer celui du profil actuel
+                    avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
+                }
+                ssDatabase.mesProfils_add( 3, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+            } else if ( mode_profil == 'load' ) {
+                loadProfil( 3 );
+            }
+            document.getElementById( 'ss-btn-retour-profil' ).click();
+        }
+        // Clic Visualiser
+        document.getElementById( 'ss-btn-tester-profil' ).onclick = function () {
+            modifProfilSelonInputs();
+        }
+        // Clic Valider
+        document.getElementById( 'ss-btn-valider-profil' ).onclick = function () {
+            validerModificationsProfil();
+        }
+        // Clic Crayon
+        btnEditProfil.onclick = function () {
+            if ( modalEditProfil.style.display == 'flex' ) {
+                modalEditProfil.style.display = 'none';
+            } else {
+                modalEditProfil.style.display = 'flex';
+            }
+        }
+        ////////////////
+        //  FONCTIONS  |
+        ////////////////
+        function lockAll() {
+            modalEditProfil.querySelectorAll( 'div' ).forEach( ( item, i ) => {
+                item.classList.add( 'disabled' )
+            } );
+        }
+        function unlockAll() {
+            modalEditProfil.querySelectorAll( 'div' ).forEach( ( item, i ) => {
+                item.classList.remove( 'disabled' )
+            } );
+        }
+        function clearInputAvatar() {
+            inputAvatar.type = "text";
+            inputAvatar.type = "file";
+        }
+        async function loadProfil( slot ) {
+            lockAll();
+            clearInputAvatar();
+            let mesProfils = await ssDatabase.mesProfils_get();
+            mesProfils.forEach( ( monProfil, i ) => {
+                if ( monProfil.id == slot ) {
+                    inputFond.value = monProfil.fond;
+                    inputMusique.value = monProfil.musique;
+                    inputBio.value = monProfil.bio;
+                    avatar_profil.src = monProfil.avatar;
+                }
+            } );
+            modifProfilSelonInputs();
+            unlockAll();
+        }
+        async function saveProfil( slot ) {
+            lockAll();
+            let avatarBase64;
+            if ( inputAvatar.files.length > 0 ) {
+                // Si avatar dans l'input
+                avatarBase64 = await inputToBase64( inputAvatar );
+            } else {
+                // Si pas d'avatar dans l'input, récupérer celui du profil actuel
+                avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
+            }
+            ssDatabase.mesProfils_add( slot, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+            unlockAll();
+        }
+        // Modifier visuellement le profil selon ce qui est saisis dans les inputs de l'outil de customization
+        async function modifProfilSelonInputs() {
+            lockAll();
+            // Changement de video Youtube de la musique
+            if ( inputMusique.value.trim() && inputMusique.value.match( /\/\/.+\/(?:watch\?v=|)([A-z0-9-]{11})/ ) ) {
+                let codeVideoYt = inputMusique.value.match( /\/\/.+\/(?:watch\?v=|)([A-z0-9-]{11})/ )[ 1 ];
+                callPlayer( "player-null", "loadVideoById", [ codeVideoYt ] );
+                musique_profil.parentNode.parentNode.classList.remove( 'hidden' );
+            } else {
+                musique_profil.parentNode.parentNode.classList.add( 'hidden' );
+                callPlayer( "player-null", "stopVideo" );
+            }
+            // Changement du fond de profil
+            if ( inputFond.value.trim() ) {
+                document.querySelector( 'body' ).setAttribute( 'style', 'background-size: cover;background-attachment: fixed;' )
+                document.querySelector( 'body' ).style.backgroundImage = "url('" + inputFond.value + "')";
+            } else {
+                document.querySelector( 'body' ).style.background = "#202225";
+            }
+
+            // Changeemnt de la bio
+            if ( inputBio.value.trim() ) {
+                console.log( bio_profil.classList );
+                bio_profil.parentNode.classList.remove( 'hidden' );
+                bio_profil.innerHTML = await parseMessageContent( inputBio.value );
+            } else {
+                bio_profil.parentNode.classList.add( 'hidden' );
+            }
+            // Changement d'avatar
+            let avatar = inputAvatar.files[ 0 ];
+            if ( avatar ) {
+                let reader = new FileReader();
+                reader.readAsDataURL( avatar, "UTF-8" );
+                reader.onload = function ( evt ) {
+                    avatar_profil.src = reader.result;
+                    unlockAll();
+                }
+                reader.onerror = function ( evt ) {
+                    console.log( 'Error: ', error );
+                    unlockAll();
+                }
+            } else {
+                unlockAll();
+            }
+        }
+        // Valider les modifications sur le profil
+        async function validerModificationsProfil() {
+            lockAll();
+            // Avatar -> base 64
+            let avatarBase64;
+            if ( inputAvatar.files.length > 0 ) {
+                // Si avatar dans l'input
+                avatarBase64 = await inputToBase64( inputAvatar );
+            } else {
+                // Si pas d'avatar dans l'input, récupérer celui du profil actuel
+                if ( !avatar_profil.src.match( /https.+/ ) ) {
+                    avatarBase64 = avatar_profil.src;
+                } else {
+                    avatarBase64 = null;
+                }
+            }
+            // Avatar base 64 -> fichier (si avatar changé)
+            if ( avatarBase64 ) {
+                function dataURLtoFile( dataurl, filename ) {
+                    var arr = dataurl.split( ',' ),
+                        mime = arr[ 0 ].match( /:(.*?);/ )[1],
+                        bstr = atob( arr[ 1 ] ),
+                        n = bstr.length,
+                        u8arr = new Uint8Array( n );
+
+                    while ( n-- ) {
+                        u8arr[ n ] = bstr.charCodeAt( n );
+                    }
+                    return new File( [u8arr], filename, { type: mime } );
+                }
+                // Mise à jour des modifications du profil
+                let avatarFile = dataURLtoFile( avatarBase64, 'filename.gif' );
+                await uploadAvatar( avatarFile );
+            }
+            await postProfil();
+            // Rechargement de la page
+            location.reload();
+        }
+        // POST avatar
+        function uploadAvatar( avatarFile ) {
+            return new Promise( ( resolve, reject ) => {
+                // Poster l'avatar
+                let tokenAPI = docProfil.getElementById( 'token' ).value;
+                var myHeaders = new Headers();
+                myHeaders.append( "x-authorization", tokenAPI );
+                var formdata = new FormData();
+                formdata.append( "_method", "PUT" );
+                formdata.append( "avatar", avatarFile );
+                var requestOptions = {
+                    method: 'POST',
+                    headers: myHeaders,
+                    body: formdata,
+                    redirect: 'follow'
+                };
+                fetch( "https://avenoel.org/api/v1/users/username:" + utilisateur_connecte + "/avatar", requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
+            } );
+        }
+        // POST profil
+        function postProfil() {
+            return new Promise( ( resolve, reject ) => {
+                let lien_youtube_valide = "";
+                // Changement de video Youtube de la musique
+                if ( inputMusique.value.trim() && inputMusique.value.match( /\/\/.+\/(?:watch\?v=|)([A-z0-9-]{11})/ ) ) {
+                    let codeVideoYt = inputMusique.value.match( /\/\/.+\/(?:watch\?v=|)([A-z0-9-]{11})/ )[ 1 ];
+                    lien_youtube_valide = 'https://www.youtube.com/watch?v=' + codeVideoYt;
+                }
+                let tokencsrf = document.querySelector( 'meta[name="csrf-token"]' ).content;
+                var myHeaders = new Headers();
+                myHeaders.append( "Content-Type", "application/x-www-form-urlencoded" );
+                var urlencoded = new URLSearchParams();
+                urlencoded.append( "profile_background", inputFond.value );
+                urlencoded.append( "music", lien_youtube_valide );
+                urlencoded.append( "biography", inputBio.value );
+                urlencoded.append( "_method", "PUT" );
+                urlencoded.append( "_token", tokencsrf );
+                var requestOptions = {
+                    method: 'POST',
+                    headers: myHeaders,
+                    body: urlencoded,
+                    redirect: 'follow'
+                };
+                fetch( "https://avenoel.org/user/username:" + utilisateur_connecte, requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
+            } );
+        }
+        // Conversion du contenu d'un input file en base64
+        function inputToBase64( input ) {
+            return new Promise( ( resolve, reject ) => {
+                let avatar = input.files[ 0 ];
+                if ( avatar ) {
+                    let reader = new FileReader();
+                    reader.readAsDataURL( avatar, "UTF-8" );
+                    reader.onload = function ( evt ) {
+                        resolve( reader.result );
+                    }
+                    reader.onerror = function ( evt ) {
+                        reject( 'Error: ', error );
+                    }
+                }
+            } );
+        }
+        // Récupération de l'avatar en base64 par URL
+        function urlToBase64( url ) {
+            return new Promise( ( resolve, reject ) => {
+                var xhr = new XMLHttpRequest();
+                xhr.onload = function () {
+                    var reader = new FileReader();
+                    reader.readAsDataURL( xhr.response );
+                    reader.onloadend = function () {
+                        resolve( reader.result );
+                    }
+                };
+                xhr.onerror = function ( evt ) {
+                    reject( 'Error: ', error );
+                }
+                xhr.open( 'GET', url );
+                xhr.responseType = 'blob';
+                xhr.send();
+
+            } );
+        }
+        // Interractions avec le lecteur Youtube du Profil
+        /**
+        * @author       Rob W <gwnRob@gmail.com>
+        * @website      https://stackoverflow.com/a/7513356/938089
+        * @version      20190409
+        * @description  Executes function on a framed YouTube video (see website link)
+        *               For a full list of possible functions, see:
+        *               https://developers.google.com/youtube/js_api_reference
+        * @param String frame_id The id of (the div containing) the frame
+        * @param String func     Desired function to call, eg. "playVideo"
+        *        (Function)      Function to call when the player is ready.
+        * @param Array  args     (optional) List of arguments to pass to function func*/
+        function callPlayer( frame_id, func, args ) {
+            if ( window.jQuery && frame_id instanceof jQuery ) 
+                frame_id = frame_id.get( 0 ).id;
+            var iframe = document.getElementById( frame_id );
+            if ( iframe && iframe.tagName.toUpperCase() != 'IFRAME' ) {
+                iframe = iframe.getElementsByTagName( 'iframe' )[ 0 ];
+            }
+
+            // When the player is not ready yet, add the event to a queue
+            // Each frame_id is associated with an own queue.
+            // Each queue has three possible states:
+            //  undefined = uninitialised / array = queue / .ready=true = ready
+            if ( !callPlayer.queue ) 
+                callPlayer.queue = {};
+            var queue = callPlayer.queue[frame_id],
+                domReady = document.readyState == 'complete';
+
+            if ( domReady && !iframe ) {
+                // DOM is ready and iframe does not exist. Log a message
+                window.console && console.log( 'callPlayer: Frame not found; id=' + frame_id );
+                if ( queue ) 
+                    clearInterval( queue.poller );
+                }
+            else if ( func === 'listening' ) {
+                // Sending the "listener" message to the frame, to request status updates
+                if ( iframe && iframe.contentWindow ) {
+                    func = '{"event":"listening","id":' + JSON.stringify( '' + frame_id ) + '}';
+                    iframe.contentWindow.postMessage( func, '*' );
+                }
+            } else if ( ( !queue || !queue.ready ) && ( !domReady || iframe && !iframe.contentWindow || typeof func === 'function' ) ) {
+                if ( !queue ) 
+                    queue = callPlayer.queue[ frame_id ] = [];
+                queue.push( [ func, args ] );
+                if ( !( 'poller' in queue ) ) {
+                    // keep polling until the document and frame is ready
+                    queue.poller = setInterval( function () {
+                        callPlayer( frame_id, 'listening' );
+                    }, 250 );
+                    // Add a global "message" event listener, to catch status updates:
+                    messageEvent( 1, function runOnceReady( e ) {
+                        if ( !iframe ) {
+                            iframe = document.getElementById( frame_id );
+                            if ( !iframe ) 
+                                return;
+                            if ( iframe.tagName.toUpperCase() != 'IFRAME' ) {
+                                iframe = iframe.getElementsByTagName( 'iframe' )[ 0 ];
+                                if ( !iframe ) 
+                                    return;
+                                }
+                            }
+                        if ( e.source === iframe.contentWindow ) {
+                            // Assume that the player is ready if we receive a
+                            // message from the iframe
+                            clearInterval( queue.poller );
+                            queue.ready = true;
+                            messageEvent( 0, runOnceReady );
+                            // .. and release the queue:
+                            while ( tmp = queue.shift() ) {
+                                callPlayer( frame_id, tmp[0], tmp[ 1 ] );
+                            }
+                        }
+                    }, false );
+                }
+            } else if ( iframe && iframe.contentWindow ) {
+                // When a function is supplied, just call it (like "onYouTubePlayerReady")
+                if ( func.call ) 
+                    return func();
+                
+                // Frame exists, send message
+                iframe.contentWindow.postMessage( JSON.stringify( {
+                    "event": "command",
+                    "func": func,
+                    "args": args || [],
+                    "id": frame_id
+                } ), "*" );
+            }
+            /* IE8 does not support addEventListener... */
+            function messageEvent( add, listener ) {
+                var w3 = add
+                    ? window.addEventListener
+                    : window.removeEventListener;
+                w3
+                    ? w3( 'message', listener, !1 )
+                    : (
+                        add
+                        ? window.attachEvent
+                        : window.detachEvent)( 'onmessage', listener );
+            }
+        }
+    }
+
+    ///////////////////////////////////
+    //  Interface - Toutes les pages  |
+    ///////////////////////////////////
 
     // Sans-avatar anti-golem
     function sansAvatar_antiGolem() {
@@ -1259,6 +1762,8 @@
         document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mp" ];
         // Mes messages
         document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mes-messages" ];
+        // Profils
+        document.getElementById( 'sw-custom-profils' ).querySelector( 'input' ).checked = parametres[ "sw-custom-profils" ];
     }
 
     // Virer les trucs abandonnés sur l'interface
@@ -1295,9 +1800,9 @@
         boutonScript.innerHTML = '<a style="height:70px;width:55px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/29iypJm.png" alt="Stratoscript" height="24"></a>';
         document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
-        let css = '<style type="text/css"> /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } article .message-actions { display: flex !important; flex-direction: row; align-content: center; align-items: center; gap: 5px; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: none; filter: opacity(25%); } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; color:#242529; } .hidden { display: none !important; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } .ss-mini-post .topic-message .message-content { min-height: auto !important; } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a       { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a     { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:  #2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } .zone-resultats-recherche { width: 100%; }';
+        let css = '<style type="text/css"> /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px; background-color: #2f3136; /* Green */ border: none; color: #c8c8c9; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } article .message-actions { display: flex !important; flex-direction: row; align-content: center; align-items: center; gap: 5px; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: none; filter: opacity(25%); } .ss-vert { background-color: #2ab27b; color: white; } .ss-vert:hover { background-color: #20ce88; } .ss-rouge { background-color: #bf5329; color:white; } .ss-rouge:hover { background-color: #d9501a; } .ss-gris-clair { background-color: #ccc; color:#242529; } .hidden { display: none !important; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } .ss-mini-post .topic-message .message-content { min-height: auto !important; } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a       { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a     { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:  #2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } .zone-resultats-recherche { width: 100%; } .ss-popup-profil { padding: 20px; display: flex; gap: 10px; left: 20px; bottom: 80px; background-color: rgba(255,75,75,.7); z-index: 99999; position: fixed; justify-content: flex-start; color: black; border-radius: 10px; flex-direction: column; align-items: stretch; align-content: flex-end; } .ss-popup-profil h3, .ss-popup-profil b { color: white; text-align: center; margin-top: 0px; } .ss-popup-profil div { gap: 10px; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; } .ss-bouton-profil { cursor: pointer; display: flex; left: 20px; bottom: 20px; background-color: #fd4949; height: 50px; width: 50px; z-index: 99999; position: fixed; border-radius: 50%; justify-content: center; align-items: center; color: white; } </style>';
 
-        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: none;"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> </div> </div> <!-- FIN ONGLET BLACKLIST --> </div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
+        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: block;"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel-xs"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Profils</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-custom-profils"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Outil de customization</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> </div> </div> <!-- FIN ONGLET BLACKLIST --> </div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
 
         pannelHTML += css;
 
@@ -1460,6 +1965,8 @@
                 parametres[ "sw-recherche-mp" ] = document.getElementById( 'sw-recherche-mp' ).querySelector( 'input' ).checked;
                 // Mes messages
                 parametres[ "sw-recherche-mes-messages" ] = document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked;
+                // Profils
+                parametres[ "sw-custom-profils" ] = document.getElementById( 'sw-custom-profils' ).querySelector( 'input' ).checked;
                 // Mettre à jour le LocalStorage
                 localStorage_save( parametres, "ss_parametres" );
                 localStorage_save( blacklist_pseudos, "ss_blacklist_pseudos" );
@@ -1475,6 +1982,21 @@
     }
     function basPage() {
         window.scrollTo( 0, document.body.scrollHeight );
+    }
+
+    //////////////////
+    //  PARSE POSTS  |
+    //////////////////
+    async function parseMessageContent( content_to_parse ) {
+        return new Promise( ( resolve, reject ) => {
+            $.post( '/previsualisation', { content: content_to_parse } ).done( function ( body ) {
+                if ( body.error !== null ) {
+                    reject( body.error );
+                } else {
+                    resolve( body.content );
+                }
+            } );
+        } );
     }
 
     ////////////////
@@ -1531,6 +2053,28 @@
                 };
             } );
         }
+        // Mes Profils
+        mesProfils_add( id, fond, musique, bio, avatar ) {
+            let db = this.request.result;
+            let tx = db.transaction( "MesProfils", "readwrite" );
+            let store = tx.objectStore( "MesProfils" );
+
+            store.put( { id: id, fond: fond, musique: musique, bio: bio, avatar: avatar } );
+        }
+        async mesProfils_get() {
+            return new Promise( ( resolve, reject ) => {
+                let db = this.request.result;
+                let tx = db.transaction( "MesProfils", "readonly" );
+                let store = tx.objectStore( "MesProfils" );
+
+                let db_messages = store.getAll();
+                tx.oncomplete = ( e ) => {
+                    let messages = db_messages.result;
+                    console.log( messages );
+                    resolve( messages );
+                };
+            } );
+        }
 
         // Database close
         close() {
@@ -1538,6 +2082,20 @@
             db.close();
         }
     }
+
+    ////////////////////////////
+    //  GET PROFIL PAR PSEUDO  |
+    ////////////////////////////
+    var getProfilParPseudo = function ( pseudo ) {
+        return new Promise( function ( resolution, rejet ) {
+            let requestOptions = {
+                method: 'GET',
+                redirect: 'follow'
+            };
+            // Requête
+            fetch( "https://avenoel.org/api/v1/users/username:" + pseudo, requestOptions ).then( response => response.text() ).then( result => resolution( JSON.parse( result ).data ) ).catch( error => rejet( error ) );
+        } );
+    };
 
     ///////////////////
     //  LOCALSTORAGE  |
