@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      1.9.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.9';
+    const version = '1.9.1';
 
     /* ==========================================================
     |                                                           |
@@ -1412,6 +1412,7 @@
                 console.log( bio_profil.classList );
                 bio_profil.parentNode.classList.remove( 'hidden' );
                 bio_profil.innerHTML = await parseMessageContent( inputBio.value );
+                fixDecalageImgur( bio_profil );
             } else {
                 bio_profil.parentNode.classList.add( 'hidden' );
             }
@@ -1996,6 +1997,19 @@
                     resolve( body.content );
                 }
             } );
+        } );
+    }
+
+    /////////////////////////
+    //  FIX DECALAGE IMGUR  |
+    /////////////////////////
+    function fixDecalageImgur( element ) {
+        // Sortir les images des <a>
+        element.querySelectorAll( '.board' ).forEach( function ( e ) {
+            let img = e.querySelector( 'img.board-picture' )
+            let a = e.querySelector( 'a.board-target' )
+            a.remove();
+            e.appendChild( img );
         } );
     }
 
