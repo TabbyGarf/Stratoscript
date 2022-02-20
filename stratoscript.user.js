@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.10
+// @version      1.10.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.10';
+    const version = '1.10.1';
 
     /* ==========================================================
     |                                                           |
@@ -944,6 +944,16 @@
                     okButton.setAttribute( 'style', 'width: 75px;height: 25px;' );
                     okButton.innerText = 'Valider';
                     colorMenu.appendChild( okButton );
+                    // Racourcis RGB
+                    let redBtn = document.createElement( 'div' );
+                    let greenBtn = document.createElement( 'div' );
+                    let blueBtn = document.createElement( 'div' );
+                    redBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: red;cursor: pointer;border: solid 1px;' )
+                    greenBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: green;cursor: pointer;border: solid 1px;' )
+                    blueBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: blue;cursor: pointer;border: solid 1px;' )
+                    colorMenu.appendChild( redBtn );
+                    colorMenu.appendChild( greenBtn );
+                    colorMenu.appendChild( blueBtn );
                     // Bouton d'ouverture de la popup
                     let btnToggleColorMenu = document.createElement( 'button' );
                     btnToggleColorMenu.setAttribute( 'type', 'button' );
@@ -956,7 +966,8 @@
                     // Ajouter à l'éditeur de texte
                     colorSelectorZone.appendChild( btnToggleColorMenu );
                     colorSelectorZone.appendChild( colorMenu );
-                    bbcode_zone.insertBefore( colorSelectorZone, bbcode_zone.querySelector( '[data-type="aveshack"]' ) );
+                    //bbcode_zone.insertBefore( colorSelectorZone, bbcode_zone.querySelector( '[data-type="aveshack"]' ) );
+                    bbcode_zone.appendChild( colorSelectorZone );
 
                     // EVENT - Bouton toggle menu
                     btnToggleColorMenu.onclick = function () {
@@ -970,6 +981,21 @@
                     okButton.onclick = function () {
                         let colorCode = colorInput.value;
                         addBBcodeAround( 'color', colorCode );
+                        btnToggleColorMenu.click();
+                    }
+                    // EVENT - Rouge
+                    redBtn.onclick = function () {
+                        addBBcodeAround( 'color', 'red' );
+                        btnToggleColorMenu.click();
+                    }
+                    // EVENT - Vert
+                    greenBtn.onclick = function () {
+                        addBBcodeAround( 'color', 'green' );
+                        btnToggleColorMenu.click();
+                    }
+                    // EVENT - Bleu
+                    blueBtn.onclick = function () {
+                        addBBcodeAround( 'color', 'blue' );
                         btnToggleColorMenu.click();
                     }
                 }
