@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.10.1
+// @version      1.11
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.10.1';
+    const version = '1.11';
 
     /* ==========================================================
     |                                                           |
@@ -109,7 +109,9 @@
             // Avatar anti-golem pour les sans-avatar
             sansAvatar_antiGolem();
             // Obtions supplémentaires dans le formulaire
-            ajoutBbcodesSupplementaires();
+            if ( parametres[ "sw-option-supplementaires" ] == true ) {
+                ajoutBbcodesSupplementaires();
+            }
         }
         // TOPIC
         if ( path.startsWith( "/topic" ) || path.startsWith( "/index.php/topic" ) ) {
@@ -127,6 +129,10 @@
             }
             if ( parametres[ "sw-recherche-posts" ] == true ) {
                 ajoutRecherchePosts();
+            }
+            // Eviter la perte de nouveaux messages sur des topics lock ou supprimés
+            if ( parametres[ "sw-prevoir-lock" ] == true ) {
+                eviterPerteNouveauMessage();
             }
         }
         // LISTE DES TOPICS
@@ -322,7 +328,7 @@
             };
         } );
     }
-
+    // Ajouter la recherche de posts à l'intérieur des topics
     function ajoutRecherchePosts() {
         let modalRecherche = '<!-- Fond modal--> <div id="ss-modal-recherche" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Corps --> <div class="ss-panel-body"><div class="ss-col"> <!-- Filtres de recherche --> <div class="ss-mini-panel"> <h3>Filtres de recherche</h3> <div class="ss-row ss-space-childs ss-full-width"> <div class="ss-row ss-fill ss-space-childs"> <input type="text" class="ss-fill inputFiltreAuteur" style="height:36px;min-width:200px" placeholder="Auteur"> <input type="text" class="ss-fill inputFiltreContenu" style="height:36px;min-width:200px" placeholder="Contenu"> </div> <button id="btn-recherche" class="ss-btn ss-vert" type="button">Rechercher</button> </div> </div> <!-- Barre de progrssion --> <div class="ss-row" style="margin:0px 20px 20px 20px"> <div class="ss-progressbar ss-full-width" style="display:none"> <div class="ss-col" style="width:0%"></div> </div> </div><!-- Résultats de recherche --> <div class="ss-mini-panel"> <h3>Résultats de recherche</h3> <div class="ss-full-width zone-resultats-recherche ss-col" style="padding:10px"> </div> </div> </div></div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version </span> <div class="ss-row"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> </div></div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
@@ -364,7 +370,7 @@
         } );
 
         async function rechercheTopic() {
-            let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" )
+            let progressbar = document.querySelector( "#ss-modal-recherche .ss-progressbar" );
             let filtre_auteur = document.querySelector( '#ss-modal-recherche .inputFiltreAuteur' ).value.toLowerCase().trim();
             let filtre_contenu = document.querySelector( '#ss-modal-recherche .inputFiltreContenu' ).value.toLowerCase().trim();
 
@@ -397,6 +403,25 @@
             // Cacher progressbar
             progressbar.style.display = "none";
         }
+    }
+
+    // Eviter la perte de nouveaux messages sur des topics lock ou supprimés
+    function eviterPerteNouveauMessage() {
+        let form = document.querySelector( 'form#form' )
+        form.addEventListener( 'submit', async ( e ) => {
+            e.preventDefault();
+            let id_topic = /topic\/([0-9]+)-/.exec( path )[ 1 ];
+            let topic = await getTopicParId( id_topic );
+            if ( topic ) {
+                if ( !topic.locked ) {
+                    form.submit();
+                } else {
+                    alert( 'Le topic est lock !' );
+                }
+            } else {
+                alert( 'Le topic est supprimé !' );
+            }
+        } );
     }
 
     // Mettre les events sur les citations permettant d'ouvrir le nv formulaire si on clic dessus
@@ -673,20 +698,6 @@
                 e.parentNode.remove();
             }
 
-            // Vocaroo
-            if ( parametres[ "sw-vocaroo" ] == true && url.match( /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/ ) ) {
-                // Créer le lecteur
-                let lecteurVocaroo = document.createElement( "iframe" );
-                let id_vocaroo = /https:\/\/(voca\.ro|(?:www\.)?vocaroo\.com)\/([A-z0-9]+)/.exec( url )[ 2 ];
-                lecteurVocaroo.setAttribute( "width", "300" );
-                lecteurVocaroo.setAttribute( "height", "60" );
-                lecteurVocaroo.setAttribute( "src", "https://vocaroo.com/embed/" + id_vocaroo + "?autoplay=0" );
-                lecteurVocaroo.setAttribute( "frameborder", "0" );
-                lecteurVocaroo.setAttribute( "allow", "autoplay" );
-                // Ramplacer le lien par le lecteur
-                e.parentNode.parentNode.replaceChild( lecteurVocaroo, e.parentNode );
-            }
-
             // IssouTV
             if ( parametres[ "sw-issoutv" ] == true && url.match( /(https:\/\/(issoutv\.com)(.+)\/(.+))/ ) ) {
                 // Gérer l'URL IssouTV
@@ -824,7 +835,7 @@
             document.querySelectorAll( 'div.textarea-container' ).forEach( ( zoneFormulaire, i ) => {
                 // Récupérer le champs de texte ainsi que la barre d'outils/sa couleur de fond
                 let bbcode_zone = zoneFormulaire.querySelector( 'div.bbcodes' );
-                let bbcode_zone_background_color = getComputedStyle( bbcode_zone ).backgroundColor
+                let bbcode_zone_background_color = getComputedStyle( bbcode_zone ).backgroundColor;
                 bbcode_zone.setAttribute( 'style', 'display: flex;flex-direction: row;align-items: center;flex-wrap: wrap;' );
                 let textarea = zoneFormulaire.querySelector( 'textarea.post-content' );
                 // Ajouter les nouveaux éléments à la barre d'outil
@@ -889,7 +900,7 @@
                         textarea.focus();
                         textarea.selectionStart = selectionStart + indentation.length;
                         textarea.selectionEnd = selectionEnd + indentation.length;
-                    }
+                    };
                 }
                 // Puissances & indices
                 function ajoutPuissancesIndices() {
@@ -920,11 +931,11 @@
                     // EVENT - Bouton Puissance
                     btnPuissance.onclick = function () {
                         addBBcodeAround( 'sup', null );
-                    }
+                    };
                     // EVENT - Bouton Indice
                     btnIndice.onclick = function () {
                         addBBcodeAround( 'sub', null );
-                    }
+                    };
                 }
                 // Color Picker
                 function ajoutColorPicker() {
@@ -948,9 +959,9 @@
                     let redBtn = document.createElement( 'div' );
                     let greenBtn = document.createElement( 'div' );
                     let blueBtn = document.createElement( 'div' );
-                    redBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: red;cursor: pointer;border: solid 1px;' )
-                    greenBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: green;cursor: pointer;border: solid 1px;' )
-                    blueBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: blue;cursor: pointer;border: solid 1px;' )
+                    redBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: red;cursor: pointer;border: solid 1px;' );
+                    greenBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: green;cursor: pointer;border: solid 1px;' );
+                    blueBtn.setAttribute( 'style', 'height: 18px;width: 18px;background-color: blue;cursor: pointer;border: solid 1px;' );
                     colorMenu.appendChild( redBtn );
                     colorMenu.appendChild( greenBtn );
                     colorMenu.appendChild( blueBtn );
@@ -972,32 +983,32 @@
                     // EVENT - Bouton toggle menu
                     btnToggleColorMenu.onclick = function () {
                         if ( colorMenu.style.display == 'flex' ) {
-                            colorMenu.style.display = 'none'
+                            colorMenu.style.display = 'none';
                         } else {
-                            colorMenu.style.display = 'flex'
+                            colorMenu.style.display = 'flex';
                         }
-                    }
+                    };
                     // EVENT - Bouton valider
                     okButton.onclick = function () {
                         let colorCode = colorInput.value;
                         addBBcodeAround( 'color', colorCode );
                         btnToggleColorMenu.click();
-                    }
+                    };
                     // EVENT - Rouge
                     redBtn.onclick = function () {
                         addBBcodeAround( 'color', 'red' );
                         btnToggleColorMenu.click();
-                    }
+                    };
                     // EVENT - Vert
                     greenBtn.onclick = function () {
                         addBBcodeAround( 'color', 'green' );
                         btnToggleColorMenu.click();
-                    }
+                    };
                     // EVENT - Bleu
                     blueBtn.onclick = function () {
                         addBBcodeAround( 'color', 'blue' );
                         btnToggleColorMenu.click();
-                    }
+                    };
                 }
             } );
         }
@@ -1255,7 +1266,7 @@
         btnRechercher.setAttribute( "style", "margin-right:3px" );
         btnRechercher.setAttribute( "class", "btn btn-primary btn-rechercher pull-right" );
         btnRechercher.innerText = 'Rechercher';
-        document.querySelector( '.pagination-topic' ).parentElement.insertBefore( btnRechercher, document.querySelector( '.pagination-topic' ) )
+        document.querySelector( '.pagination-topic' ).parentElement.insertBefore( btnRechercher, document.querySelector( '.pagination-topic' ) );
 
         // Event - Clic sur le bouton Filtrer
         document.getElementById( 'btn-filtrer' ).onclick = function () {
@@ -1383,7 +1394,7 @@
         // Player Youtube
         if ( !document.querySelector( '.player-wrapper iframe' ) ) {
             let player = document.createElement( 'div' );
-            player.setAttribute( 'class', 'text-center hidden' )
+            player.setAttribute( 'class', 'text-center hidden' );
             player.innerHTML = `
             <div class="player-wrapper">
                 <iframe id="player-null" class="player" frameborder="0" allowfullscreen="1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title="YouTube video player" width="0" height="0" src="https://www.youtube.com/embed/2anxA556cBc?enablejsapi=1&amp;origin=https%3A%2F%2Favenoel.org&amp;widgetid=1"></iframe>
@@ -1438,7 +1449,7 @@
                 slots_affiches = false;
             }
             mode_profil = null;
-        }
+        };
         // Clic Load
         document.getElementById( 'ss-btn-load-profil' ).onclick = function () {
             if ( !slots_affiches ) {
@@ -1450,7 +1461,7 @@
                 slots_affiches = true;
             }
             mode_profil = 'load';
-        }
+        };
         // Clic Save
         document.getElementById( 'ss-btn-save-profil' ).onclick = function () {
             if ( !slots_affiches ) {
@@ -1462,7 +1473,7 @@
                 slots_affiches = true;
             }
             mode_profil = 'save';
-        }
+        };
         // Clic 1
         document.getElementById( 'ss-slot1-profil' ).onclick = async function () {
             if ( mode_profil == 'save' ) {
@@ -1479,7 +1490,7 @@
                 loadProfil( 1 );
             }
             document.getElementById( 'ss-btn-retour-profil' ).click();
-        }
+        };
         // Clic 2
         document.getElementById( 'ss-slot2-profil' ).onclick = async function () {
             if ( mode_profil == 'save' ) {
@@ -1496,7 +1507,7 @@
                 loadProfil( 2 );
             }
             document.getElementById( 'ss-btn-retour-profil' ).click();
-        }
+        };
         // Clic 3
         document.getElementById( 'ss-slot3-profil' ).onclick = async function () {
             if ( mode_profil == 'save' ) {
@@ -1513,15 +1524,15 @@
                 loadProfil( 3 );
             }
             document.getElementById( 'ss-btn-retour-profil' ).click();
-        }
+        };
         // Clic Visualiser
         document.getElementById( 'ss-btn-tester-profil' ).onclick = function () {
             modifProfilSelonInputs();
-        }
+        };
         // Clic Valider
         document.getElementById( 'ss-btn-valider-profil' ).onclick = function () {
             validerModificationsProfil();
-        }
+        };
         // Clic Crayon
         btnEditProfil.onclick = function () {
             if ( modalEditProfil.style.display == 'flex' ) {
@@ -1529,18 +1540,18 @@
             } else {
                 modalEditProfil.style.display = 'flex';
             }
-        }
+        };
         ////////////////
         //  FONCTIONS  |
         ////////////////
         function lockAll() {
             modalEditProfil.querySelectorAll( 'div' ).forEach( ( item, i ) => {
-                item.classList.add( 'disabled' )
+                item.classList.add( 'disabled' );
             } );
         }
         function unlockAll() {
             modalEditProfil.querySelectorAll( 'div' ).forEach( ( item, i ) => {
-                item.classList.remove( 'disabled' )
+                item.classList.remove( 'disabled' );
             } );
         }
         function clearInputAvatar() {
@@ -1589,7 +1600,7 @@
             }
             // Changement du fond de profil
             if ( inputFond.value.trim() ) {
-                document.querySelector( 'body' ).setAttribute( 'style', 'background-size: cover;background-attachment: fixed;' )
+                document.querySelector( 'body' ).setAttribute( 'style', 'background-size: cover;background-attachment: fixed;' );
                 document.querySelector( 'body' ).style.backgroundImage = "url('" + inputFond.value + "')";
             } else {
                 document.querySelector( 'body' ).style.background = "#202225";
@@ -1612,11 +1623,11 @@
                 reader.onload = function ( evt ) {
                     avatar_profil.src = reader.result;
                     unlockAll();
-                }
+                };
                 reader.onerror = function ( evt ) {
                     console.log( 'Error: ', evt );
                     unlockAll();
-                }
+                };
             } else {
                 unlockAll();
             }
@@ -1714,10 +1725,10 @@
                     reader.readAsDataURL( avatar, "UTF-8" );
                     reader.onload = function ( evt ) {
                         resolve( reader.result );
-                    }
+                    };
                     reader.onerror = function ( evt ) {
                         reject( 'Error: ', evt );
-                    }
+                    };
                 }
             } );
         }
@@ -1730,11 +1741,11 @@
                     reader.readAsDataURL( xhr.response );
                     reader.onloadend = function () {
                         resolve( reader.result );
-                    }
+                    };
                 };
                 xhr.onerror = function ( evt ) {
                     reject( 'Error: ', evt );
-                }
+                };
                 xhr.open( 'GET', url );
                 xhr.responseType = 'blob';
                 xhr.send();
@@ -1934,7 +1945,6 @@
         document.getElementById( 'sw-odysee' ).querySelector( 'input' ).checked = parametres[ "sw-odysee" ];
         document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked = parametres[ "sw-twitter" ];
         document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked = parametres[ "sw-issoutv" ];
-        document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked = parametres[ "sw-vocaroo" ];
         document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked = parametres[ "sw-pornhub" ];
         document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked = parametres[ "sw-mp4-webm" ];
         document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked = parametres[ "sw-masquer-inutile" ];
@@ -1943,7 +1953,6 @@
         document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-topics" ];
         // Topic
         document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-posts" ];
-        document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked = parametres[ "sw-formulaire-posts" ];
         document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-posts" ];
         // Liste des MPs
         document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked = parametres[ "sw-btn-quitter-mp" ];
@@ -1953,6 +1962,10 @@
         document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-mes-messages" ];
         // Profils
         document.getElementById( 'sw-custom-profils' ).querySelector( 'input' ).checked = parametres[ "sw-custom-profils" ];
+        // Nouveaux messages
+        document.getElementById( 'sw-prevoir-lock' ).querySelector( 'input' ).checked = parametres[ "sw-prevoir-lock" ];
+        document.getElementById( 'sw-option-supplementaires' ).querySelector( 'input' ).checked = parametres[ "sw-option-supplementaires" ];
+        document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked = parametres[ "sw-formulaire-posts" ];
     }
 
     // Virer les trucs abandonnés sur l'interface
@@ -1989,9 +2002,9 @@
         boutonScript.innerHTML = '<a style="height:70px;width:55px" class="btnStratoscript" data-toggle="modal" data-target="#modalStratoscript" href="#stratoscriptPanel" ><img class="btnStratoscript" style="position:absolute" target="_blank" src="https://i.imgur.com/29iypJm.png" alt="Stratoscript" height="24"></a>';
         document.querySelector( '.navbar-links' ).appendChild( boutonScript );
 
-        let css = '<style type="text/css"> /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px !important; background-color: #2f3136 !important; border: none; color: #c8c8c9 !important; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none !important; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } article .message-actions { display: flex !important; flex-direction: row; align-content: center; align-items: center; gap: 5px; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: none; filter: opacity(25%); } .ss-vert { background-color: #2ab27b !important; color: white !important; } .ss-vert:hover { background-color: #20ce88 !important; } .ss-rouge { background-color: #bf5329 !important; color:white !important; } .ss-rouge:hover { background-color: #d9501a !important; } .ss-gris-clair { background-color: #ccc !important; color:#242529 !important; } .hidden { display: none !important; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } .ss-mini-post .topic-message .message-content { min-height: auto !important; } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a       { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a     { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:  #2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } .zone-resultats-recherche { width: 100%; } .ss-popup-profil { padding: 20px; display: flex; gap: 10px; left: 20px; bottom: 80px; background-color: rgba(255,75,75,.7); z-index: 99999; position: fixed; justify-content: flex-start; color: black; border-radius: 10px; flex-direction: column; align-items: stretch; align-content: flex-end; } .ss-popup-profil h3, .ss-popup-profil b { color: white; text-align: center; margin-top: 0px; } .ss-popup-profil div { gap: 10px; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; } .ss-bouton-profil { cursor: pointer; display: flex; left: 20px; bottom: 20px; background-color: #fd4949; height: 50px; width: 50px; z-index: 99999; position: fixed; border-radius: 50%; justify-content: center; align-items: center; color: white; } </style>';
+        let css = '<style type="text/css"> /* Fix de histo de modé lorsque titre de topic trop long */ tbody a { overflow-wrap: anywhere; } /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px !important; background-color: #2f3136 !important; border: none; color: #c8c8c9 !important; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none !important; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } article .message-actions { display: flex !important; flex-direction: row; align-content: center; align-items: center; gap: 5px; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: none; filter: opacity(25%); } .ss-vert { background-color: #2ab27b !important; color: white !important; } .ss-vert:hover { background-color: #20ce88 !important; } .ss-rouge { background-color: #bf5329 !important; color:white !important; } .ss-rouge:hover { background-color: #d9501a !important; } .ss-gris-clair { background-color: #ccc !important; color:#242529 !important; } .hidden { display: none !important; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } .ss-mini-post .topic-message .message-content { min-height: auto !important; } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a       { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a     { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:  #2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } .zone-resultats-recherche { width: 100%; } .ss-popup-profil { padding: 20px; display: flex; gap: 10px; left: 20px; bottom: 80px; background-color: rgba(255,75,75,.7); z-index: 99999; position: fixed; justify-content: flex-start; color: black; border-radius: 10px; flex-direction: column; align-items: stretch; align-content: flex-end; } .ss-popup-profil h3, .ss-popup-profil b { color: white; text-align: center; margin-top: 0px; } .ss-popup-profil div { gap: 10px; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; } .ss-bouton-profil { cursor: pointer; display: flex; left: 20px; bottom: 20px; background-color: #fd4949; height: 50px; width: 50px; z-index: 99999; position: fixed; border-radius: 50%; justify-content: center; align-items: center; color: white; } </style>';
 
-        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: block;"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-vocaroo" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Vocaroo</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel-xs"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Profils</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-custom-profils"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Outil de customization</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> </div> </div> <!-- FIN ONGLET BLACKLIST --> </div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
+        let pannelHTML = '<!-- Fond modal  --> <div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://i.imgur.com/I9ngwnI.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: block;"> <div class="ss-mini-panel"> <h3>Ensemble du forum</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Affichage des tweets</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs IssouTV</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs mp4 et webm</div> </div> <div class="ss-option"> <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Correction URLs Odysee</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Lecteurs Odysee</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Masquer les trucs morts</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Posts par URL</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel-xs"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Profils</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-custom-profils"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Outil de customization</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Nouveaux messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-prevoir-lock" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Prévoir lock/suppression</div> </div> <div class="ss-option"> <label id="sw-option-supplementaires" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Options supplémentaires</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div> <div class="ss-label">Déblacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_suppr" class="ss-btn ss-rouge" type="button" style="height:36px;width:36px"><b style="margin-left:2px">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des formeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> </div> </div> <!-- FIN ONGLET BLACKLIST --> </div> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.0</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div> <!-- Fin fond modal -->';
 
         pannelHTML += css;
 
@@ -2066,10 +2079,10 @@
         document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).onclick = function () {
             let pseudo = document.getElementById( 'ss-btn_blacklist_forumeurs_suppr' ).previousElementSibling.value.trim();
             if ( pseudo !== "" ) {
-                let index_a_suppr = []
+                let index_a_suppr = [];
                 blacklist_pseudos.forEach( function ( e, i ) {
                     if ( e.pseudo == pseudo ) {
-                        index_a_suppr.push( i )
+                        index_a_suppr.push( i );
                     }
                 } );
                 // Parcourir à l'envers et supprimer (car la suppression nique les index)
@@ -2137,7 +2150,6 @@
                 parametres[ "sw-odysee" ] = document.getElementById( 'sw-odysee' ).querySelector( 'input' ).checked;
                 parametres[ "sw-twitter" ] = document.getElementById( 'sw-twitter' ).querySelector( 'input' ).checked;
                 parametres[ "sw-issoutv" ] = document.getElementById( 'sw-issoutv' ).querySelector( 'input' ).checked;
-                parametres[ "sw-vocaroo" ] = document.getElementById( 'sw-vocaroo' ).querySelector( 'input' ).checked;
                 parametres[ "sw-pornhub" ] = document.getElementById( 'sw-pornhub' ).querySelector( 'input' ).checked;
                 parametres[ "sw-mp4-webm" ] = document.getElementById( 'sw-mp4-webm' ).querySelector( 'input' ).checked;
                 parametres[ "sw-masquer-inutile" ] = document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked;
@@ -2146,7 +2158,6 @@
                 parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
                 // Topic
                 parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
-                parametres[ "sw-formulaire-posts" ] = document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked;
                 parametres[ "sw-recherche-posts" ] = document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked;
                 // Liste des MPs
                 parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
@@ -2156,6 +2167,11 @@
                 parametres[ "sw-recherche-mes-messages" ] = document.getElementById( 'sw-recherche-mes-messages' ).querySelector( 'input' ).checked;
                 // Profils
                 parametres[ "sw-custom-profils" ] = document.getElementById( 'sw-custom-profils' ).querySelector( 'input' ).checked;
+                // Nouveaux messages
+                parametres[ "sw-prevoir-lock" ] = document.getElementById( 'sw-prevoir-lock' ).querySelector( 'input' ).checked;
+                parametres[ "sw-option-supplementaires" ] = document.getElementById( 'sw-option-supplementaires' ).querySelector( 'input' ).checked;
+                parametres[ "sw-formulaire-posts" ] = document.getElementById( 'sw-formulaire-posts' ).querySelector( 'input' ).checked;
+
                 // Mettre à jour le LocalStorage
                 localStorage_save( parametres, "ss_parametres" );
                 localStorage_save( blacklist_pseudos, "ss_blacklist_pseudos" );
@@ -2194,8 +2210,8 @@
     function fixDecalageImgur( element ) {
         // Sortir les images des <a>
         element.querySelectorAll( '.board' ).forEach( function ( e ) {
-            let img = e.querySelector( 'img.board-picture' )
-            let a = e.querySelector( 'a.board-target' )
+            let img = e.querySelector( 'img.board-picture' );
+            let a = e.querySelector( 'a.board-target' );
             a.remove();
             e.appendChild( img );
         } );
@@ -2224,7 +2240,7 @@
                 // Schemas
                 db.createObjectStore( "MesMessages", { keyPath: "id" } );
                 db.createObjectStore( "MesProfils", { keyPath: "id" } );
-            }
+            };
         }
         // Mes Messages
         mesMessages_add( id, content, html, date, heure, auteur ) {
@@ -2283,6 +2299,21 @@
             let db = this.request.result;
             db.close();
         }
+    }
+
+    ///////////////////////
+    //  GET TOPIC PAR ID  |
+    ///////////////////////
+    function getTopicParId( id ) {
+        return new Promise( function ( resolution, rejet ) {
+            var myHeaders = new Headers();
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+                redirect: 'follow'
+            };
+            fetch( "https://avenoel.org/api/v1/topics/" + id, requestOptions ).then( response => response.text() ).then( result => resolution( JSON.parse( result ).data ) ).catch( error => rejet( error ) );
+        } );
     }
 
     ////////////////////////////
