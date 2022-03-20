@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.12
+// @version      1.12.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.12';
+    const version = '1.12.1';
 
     /* ==========================================================
     |                                                           |
@@ -410,7 +410,12 @@
         let form = document.querySelector( 'form#form' )
         form.addEventListener( 'submit', async ( e ) => {
             e.preventDefault();
+            // Récupérer le token API necessaire pour get un topic noir
+            let docMonCompte = await getDoc( 'https://avenoel.org/compte' );
+            let tokenAPI = docMonCompte.getElementById( 'token' ).value;
+            // Récupérer l'id du topic courant
             let id_topic = /topic\/([0-9]+)-/.exec( path )[ 1 ];
+            // Récupérer le topic par l'API
             let topic = await getTopicParId( id_topic );
             if ( topic ) {
                 if ( !topic.locked ) {
@@ -2318,10 +2323,11 @@
     ///////////////////////
     //  GET TOPIC PAR ID  |
     ///////////////////////
-    function getTopicParId( id ) {
-        return new Promise( function ( resolution, rejet ) {
-            var myHeaders = new Headers();
-            var requestOptions = {
+    function getTopicParId( id, tokenAPI ) {
+        return new Promise( async function ( resolution, rejet ) {
+            let myHeaders = new Headers();
+            myHeaders.append( "x-authorization", tokenAPI );
+            let requestOptions = {
                 method: 'GET',
                 headers: myHeaders,
                 redirect: 'follow'
