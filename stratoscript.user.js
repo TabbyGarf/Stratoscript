@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.12.1
+// @version      1.12.2
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.12.1';
+    const version = '1.12.2';
 
     /* ==========================================================
     |                                                           |
@@ -410,15 +410,14 @@
         let form = document.querySelector( 'form#form' )
         form.addEventListener( 'submit', async ( e ) => {
             e.preventDefault();
-            // Récupérer le token API necessaire pour get un topic noir
-            let docMonCompte = await getDoc( 'https://avenoel.org/compte' );
-            let tokenAPI = docMonCompte.getElementById( 'token' ).value;
             // Récupérer l'id du topic courant
             let id_topic = /topic\/([0-9]+)-/.exec( path )[ 1 ];
-            // Récupérer le topic par l'API
-            let topic = await getTopicParId( id_topic );
-            if ( topic ) {
-                if ( !topic.locked ) {
+            // Tenter de récup le topic
+            let topic = await getDoc( 'https://avenoel.org/topic/' + id_topic + '-1' );
+            // Si topic récupéré (topic pas suppr)
+            if ( topic && topic.querySelector( 'div.topic-messages' ) ) {
+                if ( topic.querySelector( 'form#form' ) ) {
+                    // Si le formulaire existe (topic pas lock)
                     form.submit();
                 } else {
                     alert( 'Le topic est lock !' );
@@ -2318,22 +2317,6 @@
             let db = this.request.result;
             db.close();
         }
-    }
-
-    ///////////////////////
-    //  GET TOPIC PAR ID  |
-    ///////////////////////
-    function getTopicParId( id, tokenAPI ) {
-        return new Promise( async function ( resolution, rejet ) {
-            let myHeaders = new Headers();
-            myHeaders.append( "x-authorization", tokenAPI );
-            let requestOptions = {
-                method: 'GET',
-                headers: myHeaders,
-                redirect: 'follow'
-            };
-            fetch( "https://avenoel.org/api/v1/topics/" + id, requestOptions ).then( response => response.text() ).then( result => resolution( JSON.parse( result ).data ) ).catch( error => rejet( error ) );
-        } );
     }
 
     ////////////////////////////
