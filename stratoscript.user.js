@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.13
+// @version      1.13.1
 // @description
 // @author       Stratosphere
 // @match        https://avenoel.org/*
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.13';
+    const version = '1.13.1';
 
     /* ==========================================================
     |                                                           |
@@ -860,6 +860,9 @@
     function ajoutRisibankOfficiel() {
         // Ouverture de la popup risibank
         function openRisiBank() {
+            let viewport = document.querySelector( "meta[name=viewport]" );
+            viewport.setAttribute( 'content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0' );
+
             RisiBank.activate( {
                 type: 'overlay',
                 /**
