@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.3';
+    const version = '1.14.4';
 
     /* ==========================================================
     |                                                           |
