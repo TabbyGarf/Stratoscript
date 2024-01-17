@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.5
-// @description  1.14.5 > Ajout Intégration Spotify, patch pour podcasts, patch logo
+// @version      1.14.6
+// @description  1.14.6 > Ajout Intégration Spotify, patch regex international
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @run-at       document-body
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.5';
+    const version = '1.14.6';
 
     /* ==========================================================
     |                                                           |
@@ -728,12 +728,12 @@
                 // Spotify - Embeds
                 if (parametres["sw-spotify"] == true) {
                     const spotifyPatterns = {
-                        track: /https:\/\/open\.spotify\.com\/track\/(\w+)/,
-                        album: /https:\/\/open\.spotify\.com\/album\/(\w+)/,
-                        playlist: /https:\/\/open\.spotify\.com\/playlist\/(\w+)/,
-                        artist: /https:\/\/open\.spotify\.com\/artist\/(\w+)/,
-                        episode: /https:\/\/open\.spotify\.com\/episode\/(\w+)/,
-                        show: /https:\/\/open\.spotify\.com\/show\/(\w+)/,
+                        track: /https:\/\/open\.spotify\.com\/.*?track\/(\w+)/,
+                        album: /https:\/\/open\.spotify\.com\/.*?album\/(\w+)/,
+                        playlist: /https:\/\/open\.spotify\.com\/.*?playlist\/(\w+)/,
+                        artist: /https:\/\/open\.spotify\.com\/.*?artist\/(\w+)/,
+                        episode: /https:\/\/open\.spotify\.com\/.*?episode\/(\w+)/,
+                        show: /https:\/\/open\.spotify\.com\/.*?show\/(\w+)/,
                     };
 
                     for (const [type, pattern] of Object.entries(spotifyPatterns)) {
