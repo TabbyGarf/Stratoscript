@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.1
+// @version      1.14.2
 // @description
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
