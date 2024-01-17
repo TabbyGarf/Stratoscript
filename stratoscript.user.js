@@ -733,7 +733,7 @@
                         playlist: /https:\/\/open\.spotify\.com\/playlist\/(\w+)/,
                         artist: /https:\/\/open\.spotify\.com\/artist\/(\w+)/,
                         episode: /https:\/\/open\.spotify\.com\/episode\/(\w+)/,
-                        episode: /https:\/\/open\.spotify\.com\/show\/(\w+)/,
+                        show: /https:\/\/open\.spotify\.com\/show\/(\w+)/,
                     };
 
                     for (const [type, pattern] of Object.entries(spotifyPatterns)) {
