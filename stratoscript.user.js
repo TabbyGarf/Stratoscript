@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.3
-// @description  1.14.3 > Ajout Intégration Spotify
+// @version      1.14.4
+// @description  1.14.4 > Ajout Intégration Spotify, patch pour podcasts
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @run-at       document-body
@@ -732,6 +732,8 @@
                         album: /https:\/\/open\.spotify\.com\/album\/(\w+)/,
                         playlist: /https:\/\/open\.spotify\.com\/playlist\/(\w+)/,
                         artist: /https:\/\/open\.spotify\.com\/artist\/(\w+)/,
+                        episode: /https:\/\/open\.spotify\.com\/episode\/(\w+)/,
+                        episode: /https:\/\/open\.spotify\.com\/show\/(\w+)/,
                     };
 
                     for (const [type, pattern] of Object.entries(spotifyPatterns)) {
