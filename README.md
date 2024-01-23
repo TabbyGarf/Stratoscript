@@ -5,6 +5,8 @@ Mettre à jour (lien pour boomers): [Installer](https://github.com/TabbyGarf/Str
 
 Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscript](https://userstyles.world/style/14231/changeur-de-logos-stratoscript)
 
+
+
 ### DERNIERE MISE A JOUR (1.14.10)
 > Ajout d'une blacklist de phrases ou mots-clés
 > 
@@ -57,3 +59,13 @@ Tout ces trucs sont activables / désactivables dans un panel de paramètres
 >
 >NB 3 : Je recommande fortement d'activer l'autorefresh si vous utilisez la blacklist
 
+### Systeme de version
+> Supposons une version 1.14.10.2
+>
+> 1 étant le [Stratoscript](https://github.com/Stratospherent/Stratoscript),
+> 
+> 1.14 étant le fork de Stratoscript,
+>
+> 1.14.10 étant l'ajout de fonctionalité,
+>
+> 1.14.10.2 étant le deuxieme patch de cet ajout.
