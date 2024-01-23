@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.10
-// @description  1.14.10 > Ajout Blacklist de Mots-clés
+// @version      1.14.10.1
+// @description  1.14.10.1 > Fix Regex
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -26,7 +26,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.10';
+    const version = '1.14.10.1';
 
     /* ==========================================================
     |                                                           |
