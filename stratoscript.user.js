@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.8
-// @description  1.14.8 > Ajout Filtre Anti-Putaclic et Ajustements Stickers Imgur
+// @version      1.14.9
+// @description  1.14.9 > Ajustements sur le filtre Imgur
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @run-at       document-body
@@ -24,7 +24,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.8';
+    const version = '1.14.9';
 
     /* ==========================================================
     |                                                           |
@@ -680,10 +680,10 @@
                             // Extract the file extension (e.g., .jpg) from the original source
                             let fileExtension = originalSrc.match(/\.\w+$/);
 
-                            if (img.width > 200 && img.height > 0.65 * img.width) {
+                            if (img.width > 180 && img.height > 0.45 * img.width) {
                                 img.width = 100; // Adjust the width as needed
-                                if (img.height > 1.2 * img.width) {
-                                    img.height = 120
+                                if (img.height > 1.5 * img.width) {
+                                    img.height = 150
                                 }
                             }
                         });
