@@ -14,7 +14,7 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 > 
 > Ajout d'un filtre anti putaclic. Retire les emojis et met les titres en minuscule pour les titres des topics dans la page /forum
 >
-> Réparation du regex Youtube Shorts, car le lien de partage ajoutait un parametre a la fin du lien et retire "www.", ce qui le rendait pas elligible a l'intégration.
+> Réparation du regex Youtube Shorts, car le lien de partage ajoutait un parametre a la fin du lien et retire le sous-domaine "www", ce qui le rendait pas elligible a l'intégration.
 >
 > Ajout d'une icone de script.
 
