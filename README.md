@@ -7,12 +7,16 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 
 
 
-### DERNIERE MISE A JOUR (1.14.10)
+### DERNIERE MISE A JOUR (1.14.10.X)
 > Ajout d'une blacklist de phrases ou mots-clés
 > 
 > Ajustements des stickers Imgurs, pris en compte pour pas briser les smileys, et les décors utilisés dans les topics modé ou les bios
 > 
 > Ajout d'un filtre anti putaclic. Retire les emojis et met les titres en minuscule pour les titres des topics dans la page /forum
+>
+> Réparation du regex Youtube Shorts, car le lien de partage ajoutait un parametre a la fin du lien et retire "www.", ce qui le rendait pas elligible a l'intégration.
+>
+> Ajout d'une icone de script.
 
 ### Installation sur PC
 > Installez l'extension Tampermonkey sur votre navigateur
