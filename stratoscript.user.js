@@ -741,8 +741,8 @@
                     e.parentNode.replaceChild(iframeStreamable, e);
                 }
                 // YouTube Shorts - Embed as regular YouTube videos
-                if (parametres["sw-youtube-shorts"] == true && urlCorrige.match(/https:\/\/www\.youtube\.com\/shorts\/(\w+)(?:\?[^&]*)?$/)) {
-                    let shortVideoId = urlCorrige.match(/https:\/\/www\.youtube\.com\/shorts\/(\w+)(?:\?[^&]*)?$/)[1];
+                if (parametres["sw-youtube-shorts"] == true && urlCorrige.match(/https?:\/\/(?:www\.)?youtube\.com\/shorts\/(\w+)(?:\?[^&]*)?$/)) {
+                    let shortVideoId = urlCorrige.match(/https?:\/\/(?:www\.)?youtube\.com\/shorts\/(\w+)(?:\?[^&]*)?$/)[1];
                     let embedUrl = 'https://www.youtube.com/embed/' + shortVideoId;
 
                     let iframeYouTube = document.createElement('iframe');
