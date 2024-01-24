@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.10.3
-// @description  1.14.10.3 > Ajout onglet autre
+// @version      1.14.10.4
+// @description  1.14.10.4 > reparation bug graphique
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -2331,7 +2331,7 @@
             if (rawScriptVersion && !compareVersions(installedVersion, rawScriptVersion)) {
                 // Versions don't match, add an update image link next to the button
                 let boutonAlerte = document.createElement( 'li' );
-                boutonAlerte.innerHTML = '<a style="height:70px;width:30px" class="btn-ss-update" href="https://raw.githubusercontent.com/TabbyGarf/Stratoscript/main/stratoscript.user.js" ><img class="btnUpdate" style="position:absolute" target="_blank" src="https://media.discordapp.net/attachments/592805019590459403/1199576825517592607/update.png" alt="!!!" title="Une mise à jour est disponible !" height="24"></a>';
+                boutonAlerte.innerHTML = '<a style="height:70px;width:55px" class="btn-ss-update" href="https://raw.githubusercontent.com/TabbyGarf/Stratoscript/main/stratoscript.user.js" ><img class="btnUpdate" style="position:absolute" target="_blank" src="https://media.discordapp.net/attachments/592805019590459403/1199576825517592607/update.png" alt="!!!" title="Une mise à jour est disponible !" height="24"></a>';
                 document.querySelector( '.navbar-links' ).appendChild( boutonAlerte );
             }
         })
