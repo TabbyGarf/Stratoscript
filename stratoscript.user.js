@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.11
-// @description  1.14.11 > Ajout d'explications des options et réparation du regex PornHub. Pour une raison inconnue, ca ne prenait en compte que les liens français.
+// @version      1.14.11.1
+// @description  1.14.11.1 > Je devrais tester avant de push. Véritable réparation du regex PornHub.
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -26,7 +26,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.11';
+    const version = '1.14.11.1';
 
     /* ==========================================================
     |                                                           |
@@ -948,20 +948,25 @@
             }
 
             // PornHub
-            if ( parametres[ "sw-pornhub" ] == true && url.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*pornhub\.com\/view_video\.php\?viewkey=(.{15}))/) ) {
+            if (parametres["sw-pornhub"] && url.match(/(?:https?:\/\/(?:[a-zA-Z0-9-]+\.)*pornhub\.com\/view_video\.php\?viewkey=([a-zA-Z0-9]+))/)) {
                 // Créer le lecteur
-                let lecteurPornHub = document.createElement( "iframe" );
-                let id_video = /(https:\/\/(?:[a-zA-Z0-9-]+\.)*pornhub\.com\/view_video\.php\?viewkey=(.{15}))/.exec( url )[ 2 ];
-                lecteurPornHub.setAttribute( "width", "380" );
-                lecteurPornHub.setAttribute( "height", "214" );
-                lecteurPornHub.setAttribute( "src", "https://www.pornhub.com/embed/" + id_video );
-                lecteurPornHub.setAttribute( "frameborder", "0" );
-                lecteurPornHub.setAttribute( "allowfullscreen", "" );
-                // Ajouter le lecteur
-                e.parentNode.parentNode.insertBefore( lecteurPornHub, e.parentNode );
-                // Supprimer le lien
-                e.parentNode.remove();
+                let lecteurPornHub = document.createElement("iframe");
+                let videoIDMatch = url.match(/(?:https?:\/\/(?:[a-zA-Z0-9-]+\.)*pornhub\.com\/view_video\.php\?viewkey=([a-zA-Z0-9]+))/);
+
+                if (videoIDMatch) {
+                    let videoID = videoIDMatch[1];
+                    lecteurPornHub.setAttribute("width", "380");
+                    lecteurPornHub.setAttribute("height", "214");
+                    lecteurPornHub.setAttribute("src", `https://www.pornhub.com/embed/${videoID}`);
+                    lecteurPornHub.setAttribute("frameborder", "0");
+                    lecteurPornHub.setAttribute("allowfullscreen", "");
+                    // Ajouter le lecteur
+                    e.parentNode.parentNode.insertBefore(lecteurPornHub, e.parentNode);
+                    // Supprimer le lien
+                    e.parentNode.remove();
+                }
             }
+
         } );
     }
     // AntiPutaclic
