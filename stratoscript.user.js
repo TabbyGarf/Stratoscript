@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.11.1
-// @description  1.14.11.1 > Je devrais tester avant de push. Véritable réparation du regex PornHub.
+// @version      1.14.11.2
+// @description  1.14.11.2 > Retrait temporaire antiGolem, ajouterai un toggle plus tard <3
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -122,7 +122,7 @@
             // Lecteurs Vocaroo, IssouTV, Webm etc...
             ajoutLecteursEtIntegrations(document.body);
             // Avatar anti-golem pour les sans-avatar
-            sansAvatar_antiGolem();
+            // sansAvatar_antiGolem();
             // Obtions supplémentaires dans le formulaire
             if ( parametres[ "sw-option-supplementaires" ] == true ) {
                 ajoutBbcodesSupplementaires();
@@ -275,7 +275,7 @@
         // Spoilers
         ajoutSpoilers();
         // Sans-avatar Anti-golems
-        sansAvatar_antiGolem();
+        // sansAvatar_antiGolem();
     }
 
     // Refresh et autorefresh
