@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.13.beta1
-// @description  1.14.13.beta1 > Ajout surlignement du pseudo (beta surlignement basée sur couleur de pseudo)
+// @version      1.14.13.1
+// @description  1.14.13.1 > Ajout surlignement du pseudo (surlignement basée sur couleur de pseudo)
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -26,7 +26,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.13.beta1';
+    const version = '1.14.13.1';
 
     /* ==========================================================
     |                                                           |
@@ -2737,7 +2737,6 @@
         usernameLinks.forEach(link => {
             const textColor = getComputedStyle(link).color;
             link.style.textShadow = `0 0 2px ${textColor}`;
-            link.style.textShadow = `0 0 2px white`;
         });
     }
 }
