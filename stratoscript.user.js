@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.13
-// @description  1.14.13 > Ajout surlignement du pseudo
+// @version      1.14.13.beta1
+// @description  1.14.13.beta1 > Ajout surlignement du pseudo (beta surlignement basée sur couleur de pseudo)
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -26,7 +26,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.12.2';
+    const version = '1.14.13.beta1';
 
     /* ==========================================================
     |                                                           |
@@ -259,7 +259,7 @@
         toggleButton.className = 'btn';
         toggleButton.tabIndex = '-1';
         toggleButton.dataset.type = 'imgur';
-        toggleButton.style.filter = 'grayscale(100%)'; // Set default to black and white
+        toggleButton.style.filter = 'grayscale(50%)'; // Set default to black and white
         toggleButton.style.opacity = '0.8';
         // Add event listeners for hover effect
         toggleButton.addEventListener('mouseenter', function() {
@@ -268,7 +268,7 @@
         });
 
         toggleButton.addEventListener('mouseleave', function() {
-            toggleButton.style.filter = 'grayscale(100%)'; // Set back to black and white on leave
+            toggleButton.style.filter = 'grayscale(50%)'; // Set back to black and white on leave
             toggleButton.style.opacity = '0.8';
         });
 
@@ -2735,6 +2735,8 @@
         const usernameLinks = document.querySelectorAll(`a[href="https://avenoel.org/profil/${username}"]`);
 
         usernameLinks.forEach(link => {
+            const textColor = getComputedStyle(link).color;
+            link.style.textShadow = `0 0 2px ${textColor}`;
             link.style.textShadow = `0 0 2px white`;
         });
     }
