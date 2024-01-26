@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
 // @namespace    http://tampermonkey.net/
-// @version      1.14.14
-// @description  1.14.14 > Implémentation du script de Draek, et ajout d'un input par URL pour uploads Imgur.
+// @version      1.14.14.1
+// @description  1.14.14.1 > Réparation du upload Imgur, je te deteste Spart.
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -26,7 +26,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.14';
+    const version = '1.14.14.1';
 
     /* ==========================================================
     |                                                           |
@@ -257,16 +257,16 @@
         urlUploadButton.style.width = '30%';
 
         // Add event listener to the button for handling URL upload
-        urlUploadButton.addEventListener('click', function () {
+        urlUploadButton.addEventListener('click', function (event) {
             const imageUrl = urlInput.value.trim();
             if (imageUrl !== '') {
                 event.stopPropagation();
-                uploadToImgur(imageUrl);
+                uploadToImgur(imageUrl, event); // Pass the event to the function
+                urlInput.value = ''; // Clear the input after processing
             } else {
                 alert('Veuillez entrer une URL valide.');
                 event.stopPropagation();
             }
-            urlInput.value = '';
         });
 
         // Add event listener to prevent file explorer from opening when clicking URL input
@@ -2908,85 +2908,92 @@
 
     // IMGUR
 
-// Function to upload file or URL to Imgur using Imgur API
-function uploadToImgur(fileOrUrl) {
-    // Replace 'YOUR_CLIENT_ID' with your Imgur API client ID
-    const clientId = 'eb3fa83064638bb';
+    // Function to upload file or URL to Imgur using Imgur API
+    function uploadToImgur(fileOrUrl, event) {
+        // Replace 'YOUR_CLIENT_ID' with your Imgur API client ID
+        const clientId = 'eb3fa83064638bb';
 
-    const formData = new FormData();
+        const formData = new FormData();
 
-    if (typeof fileOrUrl === 'string') {
-        // URL upload
-        formData.append('type', 'URL');
-        formData.append('image', fileOrUrl);
-    } else if (fileOrUrl instanceof File) {
-        // File upload
-        formData.append('type', 'file');
-        formData.append('image', fileOrUrl);
-    } else {
-        console.error('Invalid argument. Expected File or URL.');
-        return;
-    }
+        if (typeof fileOrUrl === 'string') {
+            // URL upload
+            formData.append('type', 'URL');
+            formData.append('image', fileOrUrl);
+        } else if (fileOrUrl instanceof File) {
+            // File upload
+            formData.append('type', 'file');
+            formData.append('image', fileOrUrl);
+        } else {
+            console.error('Invalid argument. Expected File or URL.');
+            return;
+        }
 
-    GM_xmlhttpRequest({
-        method: 'POST',
-        url: 'https://api.imgur.com/3/image',
-        headers: {
-            Authorization: `Client-ID ${clientId}`,
-        },
-        data: formData,
-        onload: function (response) {
-            const jsonResponse = JSON.parse(response.responseText);
-            if (jsonResponse.success) {
-                // Handle successful upload, paste the Imgur link in the textarea
-                const textarea = document.querySelector('textarea[name="content"]');
-                if (textarea) {
-                    const imgurLink = jsonResponse.data.link;
-                    // Get the cursor position
-                    const cursorPos = textarea.selectionStart;
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: 'https://api.imgur.com/3/image',
+            headers: {
+                Authorization: `Client-ID ${clientId}`,
+            },
+            data: formData,
+            onload: function(response) {
+                const jsonResponse = JSON.parse(response.responseText);
+                if (jsonResponse.success) {
+                    // Handle successful upload, paste the Imgur link in the closest textarea
+                    const uploadButton = event.target; // Assuming you have access to the event object
+                    const closestTextarea = findClosestTextarea(uploadButton);
 
-                    // Get the text before and after the cursor position
-                    const textBeforeCursor = textarea.value.substring(0, cursorPos);
-                    const textAfterCursor = textarea.value.substring(cursorPos);
+                    if (closestTextarea) {
+                        const imgurLink = jsonResponse.data.link;
+                        const cursorPos = closestTextarea.selectionStart;
+                        const textBeforeCursor = closestTextarea.value.substring(0, cursorPos);
+                        const textAfterCursor = closestTextarea.value.substring(cursorPos);
 
-                    // Combine the text with the Imgur link inserted
-                    textarea.value = textBeforeCursor + imgurLink + textAfterCursor;
+                        closestTextarea.value = textBeforeCursor + imgurLink + textAfterCursor;
+                    }
+                } else {
+                    // Handle upload failure
+                    console.error('Imgur Upload Failed');
+                    alert('Imgur upload failed. Please try again.');
                 }
-            } else {
-                // Handle upload failure
-                console.error('Imgur Upload Failed');
+            },
+            onerror: function(error) {
+                console.error('Error uploading to Imgur:', error);
 
                 // Show a popup error
-                alert('Imgur upload failed. Please try again.');
-            }
-        },
-        onerror: function (error) {
-            console.error('Error uploading to Imgur:', error);
-
-            // Show a popup error
-            alert('Error uploading to Imgur. Please try again.');
-        },
-    });
-}
-
-// Function to handle file drop or URL input
-function handleDrop(event) {
-    event.preventDefault();
-
-    const dataTransfer = event.dataTransfer;
-    const fileInput = document.getElementById('fileInput');
-    const urlInput = document.getElementById('urlInput');
-
-    // Check if files were dropped
-    if (dataTransfer && dataTransfer.files.length > 0) {
-        const file = dataTransfer.files[0];
-        uploadToImgur(file);
-    } else if (urlInput.value.trim() !== '') {
-        // Check if URL input is not empty
-        const imageUrl = urlInput.value.trim();
-        uploadToImgur(imageUrl);
+                alert('Error uploading to Imgur. Please try again.');
+            },
+        });
     }
-}
+
+    function findClosestTextarea(element) {
+        // Traverse up the DOM until a textarea within the same textarea-container is found
+        while (element && !element.querySelector('.form-group textarea')) {
+            element = element.parentNode;
+        }
+
+        // Return the textarea element if found, otherwise null
+        return element ? element.querySelector('.form-group textarea') : null;
+    }
+
+
+    // Function to handle file drop or URL input
+    function handleDrop(event) {
+        event.preventDefault();
+
+        const dataTransfer = event.dataTransfer;
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+
+        // Check if files were dropped
+        if (dataTransfer && dataTransfer.files.length > 0) {
+            const file = dataTransfer.files[0];
+            uploadToImgur(file, event);
+        } else if (urlInput.value.trim() !== '') {
+            // Check if URL input is not empty
+            const imageUrl = urlInput.value.trim();
+            uploadToImgur(imageUrl, event);
+        }
+    }
 
 
     // Function to handle dragover and dragenter events
@@ -3001,7 +3008,7 @@ function handleDrop(event) {
         const fileInput = event.target;
         const file = fileInput.files[0];
         if (file) {
-            uploadToImgur(file);
+            uploadToImgur(file, event);
         }
     }
 
