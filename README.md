@@ -7,16 +7,12 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 
 
 
-### DERNIERE MISE A JOUR (1.14.10.X)
-> Ajout d'une blacklist de phrases ou mots-clés
+### DERNIERE MISE A JOUR (1.14.13.X)
+> Ajout du upload Imgur, marche identiquement a celui pour aveshack! (Messages > Bouton Imgur)
 > 
-> Ajustements des stickers Imgurs, pris en compte pour pas briser les smileys, et les décors utilisés dans les topics modé ou les bios
+> Ajout d'un surlignement de pseudo. Pour ceux qui s'y perdent. (Autres > Cosmétiques)
 > 
-> Ajout d'un filtre anti putaclic. Retire les emojis et met les titres en minuscule pour les titres des topics dans la page /forum
->
-> Réparation du regex Youtube Shorts, car le lien de partage ajoutait un parametre a la fin du lien et retire le sous-domaine "www", ce qui le rendait pas elligible a l'intégration.
->
-> Ajout d'une icone de script.
+> Rendu les avatars anti-golem "opt-in" (Autres > Cosmétiques)</spoiler>
 
 ### Installation sur PC
 > Installez l'extension Tampermonkey sur votre navigateur
@@ -50,16 +46,21 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 - [MOBILE] Raccourcis pour 'Mes messages", "Topics favoris" et "Modération"
 
 ### Différences par rapport à la 1.13 de Stratosphere
-- Intégrations Streamable, Spotify, Soundcloud et YT Shorts
+- Lecteurs Streamable, Spotify, Soundcloud et YT Shorts
 - Intégrations des médias dans les spoilers
-- Filtre anti-putaclic sur la liste des sujets, et ajustements imgur
+- Filtre anti-putaclic sur la liste des sujets
+- Ajustements des __stickers__ Imgur trop large (donc pas les bannieres)
 - Icône de paramètres plus discret et nouveau logo
-- Blacklist de phrases ou mots-clés
+- Blacklist de phrases et mots-clés
+- Upload Imgur, comme si c'était AveShack
+- Surlignement du pseudo ![](https://i.imgur.com/xuqw1Qb.png)
+- Opt-in des avatars anti-golem du Stratoscript-base
 
-Tout ces trucs sont activables / désactivables dans un panel de paramètres
+Toutes ces fonctionnalités sont activables / désactivables dans un panel de paramètres
 >NB : Tout est désactivé par défaut
 >
 >NB 2 : Pour que les intégrations vidéo marchent, "Intégrations" (le titre) doit-être activée aussi
+> ![](https://i.imgur.com/xikbS77.png)
 >
 >NB 3 : Je recommande fortement d'activer l'autorefresh si vous utilisez la blacklist
 
