@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.14.14.1
 // @description  1.14.14.1 > Réparation du upload Imgur, je te deteste Spart.
-// @author       Stratosphere, StayNoided/TabbyGarf
+// @author       Stratosphere, StayNoided/TabbyGarf, Draekoort
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
 // @run-at       document-body
