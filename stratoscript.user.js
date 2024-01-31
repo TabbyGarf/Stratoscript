@@ -846,8 +846,8 @@
 
                             // Extract the file extension (e.g., .jpg) from the original source
                             let fileExtension = originalSrc.match(/\.\w+$/);
-
-                            if (img.width > 180 && img.height > 0.55 * img.width && img.width < 1200) {
+                            
+                            if (img.width > 180 && img.height > img.width && img.width < 1200) {
                                 img.width = 100; // Adjust the width as needed
                                 if (img.height > 1.5 * img.width) {
                                     img.height = 150
