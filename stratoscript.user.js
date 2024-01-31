@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.15
-// @description  1.14.15 > Intégration Instagram et ajout support vm.tiktok.com pour integration tiktok
+// @version      1.14.15.1
+// @description  1.14.15.1 > Intégration Instagram et ajout support vm.tiktok.com pour integration tiktok
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.15';
+    const version = '1.14.15.1';
 
     /* ==========================================================
     |                                                           |
@@ -847,7 +847,7 @@
                             // Extract the file extension (e.g., .jpg) from the original source
                             let fileExtension = originalSrc.match(/\.\w+$/);
 
-                            if (img.width > 180 && img.height > 0.45 * img.width) {
+                            if (img.width > 180 && img.height > 0.55 * img.width && img.width < 1200) {
                                 img.width = 100; // Adjust the width as needed
                                 if (img.height > 1.5 * img.width) {
                                     img.height = 150
