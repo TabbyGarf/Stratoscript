@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.15.1
-// @description  1.14.15.1 > Intégration Instagram et ajout support vm.tiktok.com pour integration tiktok
+// @version      1.14.15.2
+// @description  1.14.15.2 > Intégration Instagram et ajout support vm.tiktok.com pour integration tiktok
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.15.1';
+    const version = '1.14.15.2';
 
     /* ==========================================================
     |                                                           |
