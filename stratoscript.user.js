@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.16.1
-// @description  1.14.16.1 > Intégration Noelshack, fix typo
+// @version      1.14.16.2
+// @description  1.14.16.2 > Intégration Noelshack, fix typo bouton
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.16.1';
+    const version = '1.14.16.2';
 
     /* ==========================================================
     |                                                           |
@@ -141,7 +141,7 @@
             if ( parametres[ "sw-imgur-toggle" ] == true ) {
                 addImgurButton();
             }
-            if ( parametres[ "sw-imgur-toggle" ] == true ) {
+            if ( parametres[ "sw-noel-toggle" ] == true ) {
                 addNoelshackButton();
             }
             if (parametres ["sw-pseudo-custom"] == true ){
@@ -382,49 +382,11 @@ function addNoelshackButton() {
         noelshackDropzone.style.display = 'none'; // Initially hide noelshack-dropzone
         noelshackDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici';
 
-        // Create URL input
-        const urlInput = document.createElement('input');
-        urlInput.type = 'text';
-        urlInput.placeholder = 'Entrez l\'URL de l\'image';
-        urlInput.style.width = '70%';
-        urlInput.style.color = '#660000';
-        urlInput.style.border = '1px solid #dd0000';
-        urlInput.style.backgroundColor = '#0005';
-        // Create button for URL upload
-        const urlUploadButton = document.createElement('button');
-        urlUploadButton.type = 'button';
-        urlUploadButton.style.backgroundColor ='#dd0000';
-        urlUploadButton.style.color = 'white';
-        urlUploadButton.style.border = '1px solid #dd0000';
-        urlUploadButton.textContent = 'Envoyer';
-        urlUploadButton.style.width = '30%';
-
-        // Add event listener to the button for handling URL upload
-        urlUploadButton.addEventListener('click', function (event) {
-            const imageUrl = urlInput.value.trim();
-            if (imageUrl !== '') {
-                event.stopPropagation();
-                uploadToNoelshack(imageUrl, event); // Pass the event to the function
-                urlInput.value = ''; // Clear the input after processing
-            } else {
-                alert('Veuillez entrer une URL valide.');
-                event.stopPropagation();
-            }
-        });
-
-        // Add event listener to prevent file explorer from opening when clicking URL input
-        urlInput.addEventListener('click', function (event) {
-            event.stopPropagation();
-        });
-
-        // Append URL input to Noelshack dropzone
-        noelshackDropzone.appendChild(urlInput);
-        noelshackDropzone.appendChild(urlUploadButton);
         // Create file input for click handling
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.style.display = 'none';
-        fileInput.addEventListener('change', handleFileInput);
+        fileInput.addEventListener('change', handleFileInputN);
 
         // Add event listener to noelshackDropzone for click handling
         noelshackDropzone.addEventListener('click', function() {
