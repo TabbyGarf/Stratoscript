@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.16
-// @description  1.14.16 > Intégration Noelshack
+// @version      1.14.16.1
+// @description  1.14.16.1 > Intégration Noelshack, fix typo
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.16';
+    const version = '1.14.16.1';
 
     /* ==========================================================
     |                                                           |
@@ -3310,7 +3310,7 @@ function addNoelshackButton() {
         const fileInput = event.target;
         const file = fileInput.files[0];
         if (file) {
-            uploadToNoelshack(file, event);
+            uploadToImgur(file, event);
         }
     }
     // Function to handle file selection via click
