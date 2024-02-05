@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.17.1
-// @description  1.14.17.1 > Mode discret reste constant apres refresh
+// @version      1.14.17.2
+// @description  1.14.17.2 > Mode discret reste constant apres refresh
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.17.1';
+    const version = '1.14.17.2';
 
     /* ==========================================================
     |                                                           |
@@ -225,10 +225,16 @@
         // Replace /images/logo.png with a custom logo
         var logoImage = document.querySelector('img[src="/images/logo.png"]');
         if (logoImage) {
-            // Replace with the path to your custom logo
+            // Set attributes for the new logo
             logoImage.src = 'https://cdn.discordapp.com/attachments/592805019590459403/1203871895494332507/logodiscret.png';
-            logoImage.style.backgroundImage = 'https://cdn.discordapp.com/attachments/592805019590459403/1203871895494332507/logodiscret.png';
+            logoImage.alt = 'Noided International Corp.';
+            logoImage.style.backgroundImage = '';
+            logoImage.style.marginTop = '-5px';
         }
+
+
+
+
 
         // Change hue of profile pictures to /images/noavatar.png with random hue
         var avatarImages = document.querySelectorAll('.message-avatar img');
