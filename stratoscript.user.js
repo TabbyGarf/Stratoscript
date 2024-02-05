@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.17
-// @description  1.14.17 > Mode Discret
+// @version      1.14.17.1
+// @description  1.14.17.1 > Mode discret reste constant apres refresh
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://media.discordapp.net/attachments/592805019590459403/1108591534594596965/Untitled.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
 
-    const version = '1.14.17';
+    const version = '1.14.17.1';
 
     /* ==========================================================
     |                                                           |
@@ -573,6 +573,9 @@ function addNoelshackButton() {
         ajoutSpoilers();
         if ( parametres[ "sw-antigolem" ] == true ) {
             sansAvatar_antiGolem();
+        }
+        if (parametres ["sw-mode-discret"] == true){
+            modeDiscret();
         }
     }
 
