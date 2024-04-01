@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.18';
+    const version = '1.14.19';
 
     /* ==========================================================
     |                                                           |
