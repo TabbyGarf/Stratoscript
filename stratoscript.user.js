@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.19
-// @description  1.14.19 > Changement cosmétiques.
+// @version      1.14.20
+// @description  1.14.20 > retrait du logo hors mode discret, poisson d'avril
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.19';
+    const version = '1.14.20';
 
     /* ==========================================================
     |                                                           |
@@ -152,8 +152,6 @@
             //}
             if (parametres ["sw-mode-discret"] == true){
                 modeDiscret();
-            }else{
-                poisson();
             }
 
         }
@@ -252,17 +250,6 @@
             img.style.filter = 'hue-rotate(' + randomHue + 'deg) grayscale(' + randomGrayscale + ') brightness(' + (100 + randomBrightness) + '%) saturate(' + (100 + randomSaturation) + '%)';
         });
     }
-        function poisson() {
-        // Replace /images/logo.png with a custom logo
-        var logoImage = document.querySelector('img[src="/images/logo.png"]');
-        if (logoImage) {
-            // Set attributes for the new logo
-            logoImage.src = 'https://cdn.discordapp.com/attachments/592805019590459403/1224313081342197780/logobait.png?ex=661d0969&is=660a9469&hm=64b2cfb78032b7fdc5bb506322dbc2eb37d078ae3ffb6ac1fa48fa6e70b9130e&';
-            logoImage.alt = 'Noided International Corp.';
-            logoImage.style.backgroundImage = '';
-            logoImage.style.marginTop = '-5px';
-        }
-        }
    // Function to add Imgur button and dropzone
     function addImgurButton() {
         const formGroups = document.querySelectorAll('.bbcodes');
