@@ -271,8 +271,6 @@ function addImgurButton() {
         }
     });
 }
-    });
-}
     // Initialisation après chargement complet
     window.onload = function () {
         setTimeout( function () {
