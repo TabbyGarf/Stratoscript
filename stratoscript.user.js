@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.15
-// @description  1.15 > Changement de profil via ID permettant aux pseudos chelous d'edit
+// @version      1.14.21
+// @description  1.14.21 > Changement de profil via ID permettant aux pseudos chelous d'edit
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.15';
+    const version = '1.14.21';
 
     /* ==========================================================
     |                                                           |
