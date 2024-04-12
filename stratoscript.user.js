@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.20
-// @description  1.14.20 > retrait du logo hors mode discret, poisson d'avril
+// @version      1.15
+// @description  1.15 > Changement de profil via ID permettant aux pseudos chelous d'edit
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.20';
+    const version = '1.15';
 
     /* ==========================================================
     |                                                           |
@@ -270,7 +270,7 @@
         imgurDropzone.style.margin = '0 auto';
         imgurDropzone.style.fontSize = "12px"
         imgurDropzone.style.display = 'none'; // Initially hide imgur-dropzone
-        imgurDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u> (imgur)';
+        imgurDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u> (imgur)<br><sub>Poids max. : 20Mo (PNG, JPG) ; 200Mo (GIF, APNG)</sub>';
 
         // Create URL input
         const urlInput = document.createElement('input');
@@ -411,7 +411,7 @@ function addNoelshackButton() {
         noelshackDropzone.style.margin = '0 auto';
         noelshackDropzone.style.fontSize = "12px"
         noelshackDropzone.style.display = 'none'; // Initially hide noelshack-dropzone
-        noelshackDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici';
+        noelshackDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u><br><sub>Formats autorisés : PNG, JPEG, GIF, SVG, BMP, TIFF.<br>Poids max. : 4 Mo. Taille min. : 128x128 px.</sub>';
 
         // Create file input for click handling
         const fileInput = document.createElement('input');
@@ -2102,14 +2102,27 @@ function addNoelshackButton() {
         let inputFond = document.getElementById( 'ss-input-fond' );
         let inputBio = document.getElementById( 'ss-biographie' );
         let inputMusique = document.getElementById( 'ss-input-musique' );
-        // Obtenir les données du profil par l'API
-        let compte_profil = await getProfilParPseudo( pseudo_profil );
 
         // Débloquer le bouton "Valider" si propre profil
-        let utilisateur_connecte = document.querySelector( '.navbar-user li a' ).href.match( /.+\/(.+)/ )[ 1 ];
-        if ( utilisateur_connecte == pseudo_profil ) {
+
+        let id_forumeur
+        let compte_profil
+
+        let utilisateur_connecte = await getProfil();
+        console.log(utilisateur_connecte.username);
+        if ( utilisateur_connecte.username == pseudo_profil ) {
             document.getElementById( 'ss-btn-valider-profil' ).classList.remove( 'disabled' );
+        id_forumeur = utilisateur_connecte.id;
+        console.log(id_forumeur);
+        } else {
+        compte_profil = await getProfilParPseudo( pseudo_profil );
+        id_forumeur = compte_profil.id;
         }
+
+        console.log(id_forumeur);
+        compte_profil = await getProfilParId( id_forumeur );
+
+
 
         let slots_affiches = false;
         let mode_profil;
@@ -2372,7 +2385,7 @@ function addNoelshackButton() {
                     body: formdata,
                     redirect: 'follow'
                 };
-                fetch( "https://avenoel.org/api/v1/users/username:" + utilisateur_connecte + "/avatar", requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
+                fetch( "https://avenoel.org/api/v1/users/id:" + id_forumeur + "/avatar", requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
             } );
         }
         // POST profil
@@ -2399,7 +2412,7 @@ function addNoelshackButton() {
                     body: urlencoded,
                     redirect: 'follow'
                 };
-                fetch( "https://avenoel.org/user/username:" + utilisateur_connecte, requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
+                fetch( "https://avenoel.org/user/id:" + id_forumeur, requestOptions ).then( response => response.text() ).then( result => resolve( result ) ).catch( error => reject( 'error', error ) );
             } );
         }
         // Conversion du contenu d'un input file en base64
@@ -3158,6 +3171,55 @@ function addNoelshackButton() {
             fetch( "https://avenoel.org/api/v1/users/username:" + pseudo, requestOptions ).then( response => response.text() ).then( result => resolution( JSON.parse( result ).data ) ).catch( error => rejet( error ) );
         } );
     };
+    var getProfilParId = function ( pseudo ) {
+        return new Promise( function ( resolution, rejet ) {
+            let requestOptions = {
+                method: 'GET',
+                redirect: 'follow'
+            };
+            // Requête
+            fetch( "https://avenoel.org/api/v1/users/id:" + pseudo, requestOptions ).then( response => response.text() ).then( result => resolution( JSON.parse( result ).data ) ).catch( error => rejet( error ) );
+        } );
+    };
+    var getProfil = function ( pseudo ) {
+        return new Promise(function (resolution, rejet) {
+        let requestOptionsAuth = {
+            method: 'GET',
+            redirect: 'follow'
+        };
+
+        // Fetch user ID from /auth
+        // Merci Coulisse pour l'idée du /auth
+        fetch("https://avenoel.org/auth", requestOptionsAuth)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(authData => {
+                // Extract user ID from authData
+                const userId = authData.user.id;
+                let requestOptionsUserData = {
+                    method: 'GET',
+                    redirect: 'follow'
+                };
+
+                // Fetch user profile data using user ID
+                fetch("https://avenoel.org/api/v1/users/id:" + userId, requestOptionsUserData)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(result => resolution(JSON.parse(result).data))
+                    .catch(error => rejet(error));
+            })
+            .catch(error => rejet(error));
+    });
+};
+
 
     ///////////////////
     //  LOCALSTORAGE  |
@@ -3262,7 +3324,7 @@ function addNoelshackButton() {
                 } else {
                     // Handle upload failure
                     console.error('Noelshack Upload Failed');
-                    alert('Noelshack upload failed. Please try again.');
+                    alert('L\'upload a fail, Formats autorisés : PNG, JPEG, GIF, SVG, BMP, TIFF. Poids max. : 4 Mo. Taille min. : 128x128 px.');
                 }
             },
             onerror: function(error) {
