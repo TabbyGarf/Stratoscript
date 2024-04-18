@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.21
-// @description  1.14.21 > Changement de profil via ID permettant aux pseudos chelous d'edit
-// @author       Stratosphere, StayNoided/TabbyGarf
+// @version      1.14.22
+// @description  1.14.22 > Ajout du vim mode
+// @author       Stratosphere, StayNoided/TabbyGarf, Tigriz
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
 // @run-at       document-body
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.21';
+    const version = '1.14.22';
 
     /* ==========================================================
     |                                                           |
@@ -3563,7 +3563,6 @@ async function identifyTrack() {
       const topRow = ['Backquote','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal']
       document.onkeydown = async (e) => {
         e = e || window.event;
-        console.log(e)
         if(focusNodes.includes(document.activeElement.nodeName) && e.code === 'Escape'){
           document.activeElement.blur()
           mode.value = ''
