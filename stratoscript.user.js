@@ -3575,7 +3575,7 @@ async function identifyTrack() {
             if(path.startsWith( "/forum" )) {
               document.querySelectorAll('tbody tr .topic-icon').forEach((el, index) => {
                 const template = document.createElement("template")
-                template.innerHTML = `<div class="ss-vim-hint">${index>13?'<kbd>Shift</kbd> + ':''}<kbd>${topRow[index%13]}</kbd></div>`
+                template.innerHTML = `<div class="ss-vim-hint">${index>12?'<kbd>Shift</kbd> + ':''}<kbd>${topRow[index%13]}</kbd></div>`
                 el.append(template.content.children[0])
               })
             }
