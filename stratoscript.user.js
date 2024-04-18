@@ -3639,7 +3639,7 @@ async function identifyTrack() {
           }
         }
         if(topRow.includes(e.code)){
-          if(path.startsWith( "/forum" )) document.querySelectorAll('.topics-title a')[topRow.indexOf(e.code)+(e.shiftKey?13:0)].click()
+          if(path.startsWith( "/forum" )) navigation.navigate(document.querySelectorAll('.topic-icon a')[topRow.indexOf(e.code)+(e.shiftKey?13:0)].href+(e.ctrlKey?'#form':''))
           if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[topRow.indexOf(e.code)+(e.shiftKey?13:0)].scrollIntoView({behavior: 'smooth'})
         }
     };
