@@ -3578,14 +3578,7 @@ async function identifyTrack() {
                 template.innerHTML = `<div class="ss-vim-hint">${index>13?'<kbd>Shift</kbd> + ':''}<kbd>${topRow[index%13]}</kbd></div>`
                 el.append(template.content.children[0])
               })
-              document.querySelector('input[name="title"]').focus()
             }
-            if(path.startsWith( "/topic" )) {
-              document.querySelector('#form textarea').scrollIntoView({behavior: 'smooth'})
-              document.querySelector('#form textarea').focus()
-            }
-            document.activeElement.blur()
-            e.preventDefault()
             break;
           case 'r':
           case 'R':
