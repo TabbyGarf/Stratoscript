@@ -3532,13 +3532,13 @@ async function identifyTrack() {
 }
 
     function vim() {
-      const mode = document.createElement("input")
-      mode.disabled = true
-      mode.style = 'position: fixed'
-      mode.classList.add('ss-vim')
-      mode.onkeydown = (e) => {
+      const prompt = document.createElement("input")
+      prompt.disabled = true
+      prompt.style = 'position: fixed'
+      prompt.classList.add('ss-vim')
+      prompt.onkeydown = (e) => {
         if(event.key === 'Enter') {
-          switch(mode.value){
+          switch(prompt.value){
             case ':wq':
               document.querySelector('#form .post-submit button[type="submit"]').click()
               if(path.startsWith( "/topic" )) navigation.navigate('/forum')
@@ -3549,15 +3549,15 @@ async function identifyTrack() {
             case ':q':
               if(path.startsWith( "/topic" )) navigation.navigate('/forum')
           }
-          if(+mode.value.slice(1) !== NaN){
-            if(path.startsWith( "/forum" )) document.querySelectorAll('.topics-title a')[+mode.value.slice(1)].click()
-            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+mode.value.slice(1)].scrollIntoView()
+          if(+prompt.value.slice(1) !== NaN){
+            if(path.startsWith( "/forum" )) document.querySelectorAll('.topics-title a')[+prompt.value.slice(1)].click()
+            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+prompt.value.slice(1)].scrollIntoView()
           }
-          mode.value = ''
-          mode.disabled = true
+          prompt.value = ''
+          prompt.disabled = true
         }
       }
-      document.body.append(mode);
+      document.body.append(prompt);
 
       const focusNodes = ['TEXTAREA','INPUT']
       const topRow = ['Backquote','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal']
@@ -3565,7 +3565,7 @@ async function identifyTrack() {
         e = e || window.event;
         if(focusNodes.includes(document.activeElement.nodeName) && e.code === 'Escape'){
           document.activeElement.blur()
-          mode.value = ''
+          prompt.value = ''
         }
         if(focusNodes.includes(document.activeElement.nodeName)) return
 
@@ -3600,7 +3600,7 @@ async function identifyTrack() {
               document.querySelector('#form textarea').scrollIntoView({behavior: 'smooth'})
               document.querySelector('#form textarea').focus()
             }
-            mode.value = '-- INSERT --'
+            prompt.value = '-- INSERT --'
             e.preventDefault()
             break
           case 'h':
@@ -3624,9 +3624,9 @@ async function identifyTrack() {
             window.scrollTo({top:document.body.scrollHeight, behavior: 'smooth'});
             break
           case ':':
-            mode.disabled = false
-            mode.value = ''
-            mode.focus();
+            prompt.disabled = false
+            prompt.value = ''
+            prompt.focus();
             break
           case 'Backspace':
             navigation.canGoBack && navigation.back()
