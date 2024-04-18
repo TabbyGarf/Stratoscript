@@ -3551,7 +3551,7 @@ async function identifyTrack() {
           }
           if(+mode.value.slice(1) !== NaN){
             if(path.startsWith( "/forum" )) document.querySelectorAll('.topics-title a')[+mode.value.slice(1)].click()
-            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+mode.value.slice(1)].scrollIntoView({behavior: 'smooth'})
+            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+mode.value.slice(1)].scrollIntoView()
           }
           mode.value = ''
           mode.disabled = true
