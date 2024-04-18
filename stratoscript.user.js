@@ -3625,6 +3625,7 @@ async function identifyTrack() {
             break
           case ':':
             mode.disabled = false
+            mode.value = ''
             mode.focus();
             break
           case 'Backspace':
