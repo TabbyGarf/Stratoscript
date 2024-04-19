@@ -3550,8 +3550,9 @@ async function identifyTrack() {
               if(path.startsWith( "/topic" )) navigation.navigate('/forum')
           }
           if(+prompt.value.slice(1) !== NaN){
+            document.activeElement.blur()
             if(path.startsWith( "/forum" )) document.querySelectorAll('.topics-title a')[+prompt.value.slice(1)].click()
-            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+prompt.value.slice(1)].scrollIntoView()
+            if(path.startsWith( "/topic" )) document.querySelectorAll('.topic-message')[+prompt.value.slice(1)].scrollIntoView({behavior: 'smooth'})
           }
           prompt.value = ''
           prompt.disabled = true
