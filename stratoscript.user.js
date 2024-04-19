@@ -3537,7 +3537,7 @@ async function identifyTrack() {
       prompt.style = 'position: fixed'
       prompt.classList.add('ss-vim')
       prompt.onkeydown = (e) => {
-        if(event.key === 'Enter') {
+        if(e.key === 'Enter') {
           switch(prompt.value){
             case ':wq':
               document.querySelector('#form .post-submit button[type="submit"]').click()
