@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.22.4
-// @description  1.14.22.4 > retrait du mode vim
+// @version      1.14.22.5
+// @description  1.14.22.5 > Ajout d'un filtre pour reajuster les uploads URL Imgur venant de Discord
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.22.4';
+    const version = '1.14.22.5';
     /* ==========================================================
     |                                                           |
     |                      INITIALISATION                       |
@@ -3249,6 +3249,15 @@ function addNoelshackButton() {
         const formData = new FormData();
 
         if (typeof fileOrUrl === 'string') {
+            // formatting in case a discordapp link was sent and the format is webp
+            const url = new URL(fileOrUrl);
+            if (url.hostname === 'media.discordapp.net') {
+                const formatParam = url.searchParams.get('format');
+                if (formatParam && formatParam !== 'jpeg') {
+                    url.searchParams.set('format', 'jpeg');
+                }
+                fileOrUrl = url.toString();
+            }
             // URL upload
             formData.append('type', 'URL');
             formData.append('image', fileOrUrl);
