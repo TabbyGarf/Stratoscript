@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.22.5
-// @description  1.14.22.5 > Ajout d'un filtre pour reajuster les uploads URL Imgur venant de Discord
+// @version      1.14.22.6
+// @description  1.14.22.6 > Ajout de X
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.22.5';
+    const version = '1.14.22.6';
     /* ==========================================================
     |                                                           |
     |                      INITIALISATION                       |
@@ -495,9 +495,9 @@ function addNoelshackButton() {
         }
 
 }
+
     });
 }
-
 
 
 
@@ -1326,10 +1326,10 @@ function addNoelshackButton() {
             }
 
             // Twitter
-            if ( parametres[ "sw-twitter" ] == true && url.match( /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/ ) ) {
+            if ( parametres[ "sw-twitter" ] == true && url.match( /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/ ) ) {
                 let htmlTweet;
-                let id_compte = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 2 ];
-                let id_tweet = /(https:\/\/twitter\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 3 ];
+                let id_compte = /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 2 ];
+                let id_tweet = /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 3 ];
                 await $.ajax( {
                     type: "GET",
                     url: "https://publish.twitter.com/oembed?url=https://twitter.com/" + id_compte + "/status/" + id_tweet,
