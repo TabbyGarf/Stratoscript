@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.22.6
-// @description  1.14.22.6 > Ajout de X
+// @version      1.14.22.7
+// @description  1.14.22.7 > bug fix prévisualisation de modif profil
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -25,7 +25,7 @@
     var mes_messages = {};
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.22.6';
+    const version = '1.14.22.7';
     /* ==========================================================
     |                                                           |
     |                      INITIALISATION                       |
@@ -2064,7 +2064,7 @@ function addNoelshackButton() {
         document.querySelector( '.main-container' ).appendChild( modalEditProfil );
         let docProfil = await getDoc( 'https://avenoel.org/compte' );
 
-        modalEditProfil.innerHTML = `<h3>Customization</h3><div><b>Avatar</b><input id="ss-input-avatar" type="file" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Fond de profil</b><input id="ss-input-fond" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Musique</b><input id="ss-input-musique" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div style="justify-content: center;"><b>Biographie :</b></div><div><textarea class="form-control" id="ss-biographie" rows="5" maxlength="10000" style="width: 100%"></textarea></div><div style="margin-top: 24px;display: flex;justify-content: space-between;"><div id="ss-slots-profil" style="display:none"><button id="ss-slot1-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 1">1</button><button id="ss-slot2-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 2">2</button><button id="ss-slot3-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 3">3</button></div><div id="ss-load-save-profil"><button id="ss-btn-load-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Charger"><i class="glyphicon glyphicon-open" style="font-size: 18px"></i></button><button id="ss-btn-save-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Sauvegarder"><i class="glyphicon glyphicon-save" style="font-size: 18px"></i></button></div><div><button id="ss-btn-tester-profil" class="ss-btn" type="button" name="button">Visualiser</button><button id="ss-btn-valider-profil" class="ss-btn ss-vert disabled" type="button" name="button">Valider</button></div><button id="ss-btn-retour-profil" class="ss-btn" style="display:none" type="button" name="button">Retour</button></div>`;
+        modalEditProfil.innerHTML = `<h3>Customization</h3><div><b>Avatar</b><input id="ss-input-avatar" type="file" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Fond de profil</b><input id="ss-input-fond" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Age</b><input id="ss-input-age" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div><b>Musique</b><input id="ss-input-musique" type="text" name="" value="" style="width: 200px;" class="form-control"></div><div style="justify-content: center;"><b>Biographie :</b></div><div><textarea class="form-control" id="ss-biographie" rows="5" maxlength="10000" style="width: 100%"></textarea></div><div style="margin-top: 24px;display: flex;justify-content: space-between;"><div id="ss-slots-profil" style="display:none"><button id="ss-slot1-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 1">1</button><button id="ss-slot2-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 2">2</button><button id="ss-slot3-profil" class="ss-btn" style="width:40px" type="button" name="button" title="Slot 3">3</button></div><div id="ss-load-save-profil"><button id="ss-btn-load-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Charger"><i class="glyphicon glyphicon-open" style="font-size: 18px"></i></button><button id="ss-btn-save-profil"  class="ss-btn" style="width:40px" type="button" name="button" title="Sauvegarder"><i class="glyphicon glyphicon-save" style="font-size: 18px"></i></button></div><div><button id="ss-btn-tester-profil" class="ss-btn" type="button" name="button">Visualiser</button><button id="ss-btn-valider-profil" class="ss-btn ss-vert disabled" type="button" name="button">Valider</button></div><button id="ss-btn-retour-profil" class="ss-btn" style="display:none" type="button" name="button">Retour</button></div>`;
 
         ///////////////////////////////
         //  Ajouter zones manquantes  |
@@ -2102,6 +2102,7 @@ function addNoelshackButton() {
         let inputFond = document.getElementById( 'ss-input-fond' );
         let inputBio = document.getElementById( 'ss-biographie' );
         let inputMusique = document.getElementById( 'ss-input-musique' );
+        let inputAge = document.getElementById('ss-input-age');
 
         // Débloquer le bouton "Valider" si propre profil
 
@@ -2133,6 +2134,7 @@ function addNoelshackButton() {
             inputMusique.value = 'https://www.youtube.com/watch?v=' + compte_profil.music;
         }
         inputBio.value = compte_profil.biography;
+        inputAge.value = compte_profil.age;
 
         ///////////////////////
         //  BOUTONS ASSISTANT  |
@@ -2184,7 +2186,7 @@ function addNoelshackButton() {
                     // Si pas d'avatar dans l'input, récupérer celui du profil actuel
                     avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
                 }
-                ssDatabase.mesProfils_add( 1, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+                ssDatabase.mesProfils_add( 1, inputFond.value, inputMusique.value, inputBio.value,inputAge.value, avatarBase64 );
             } else if ( mode_profil == 'load' ) {
                 loadProfil( 1 );
             }
@@ -2201,7 +2203,7 @@ function addNoelshackButton() {
                     // Si pas d'avatar dans l'input, récupérer celui du profil actuel
                     avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
                 }
-                ssDatabase.mesProfils_add( 2, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+                ssDatabase.mesProfils_add( 2, inputFond.value, inputMusique.value, inputBio.value, inputAge.value, avatarBase64 );
             } else if ( mode_profil == 'load' ) {
                 loadProfil( 2 );
             }
@@ -2218,7 +2220,7 @@ function addNoelshackButton() {
                     // Si pas d'avatar dans l'input, récupérer celui du profil actuel
                     avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
                 }
-                ssDatabase.mesProfils_add( 3, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+                ssDatabase.mesProfils_add( 3, inputFond.value, inputMusique.value, inputBio.value, inputAge.value, avatarBase64 );
             } else if ( mode_profil == 'load' ) {
                 loadProfil( 3 );
             }
@@ -2266,6 +2268,7 @@ function addNoelshackButton() {
                     inputFond.value = monProfil.fond;
                     inputMusique.value = monProfil.musique;
                     inputBio.value = monProfil.bio;
+                    inputAge.value = monProfil.age;
                     avatar_profil.src = monProfil.avatar;
                 }
             } );
@@ -2282,7 +2285,7 @@ function addNoelshackButton() {
                 // Si pas d'avatar dans l'input, récupérer celui du profil actuel
                 avatarBase64 = await urlToBase64( '/images/avatars/' + compte_profil.avatar );
             }
-            ssDatabase.mesProfils_add( slot, inputFond.value, inputMusique.value, inputBio.value, avatarBase64 );
+            ssDatabase.mesProfils_add( slot, inputFond.value, inputMusique.value, inputBio.value,inputAge.value, avatarBase64 );
             unlockAll();
         }
         // Modifier visuellement le profil selon ce qui est saisis dans les inputs de l'outil de customization
@@ -2314,6 +2317,7 @@ function addNoelshackButton() {
             } else {
                 bio_profil.parentNode.classList.add( 'hidden' );
             }
+            
             // Changement d'avatar
             let avatar = inputAvatar.files[ 0 ];
             if ( avatar ) {
@@ -2404,6 +2408,7 @@ function addNoelshackButton() {
                 urlencoded.append( "profile_background", inputFond.value );
                 urlencoded.append( "music", lien_youtube_valide );
                 urlencoded.append( "biography", inputBio.value );
+                urlencoded.append( "age", inputAge.value );
                 urlencoded.append( "_method", "PUT" );
                 urlencoded.append( "_token", tokencsrf );
                 var requestOptions = {
