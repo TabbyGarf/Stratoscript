@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.22.7
-// @description  1.14.22.7 > bug fix prévisualisation de modif profil
+// @version      1.14.23
+// @description  1.14.23 > Ajout de Catbox/Litterbox
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -23,9 +23,11 @@
     var blacklist_kw = [];
     var theme_noir = true;
     var mes_messages = {};
+    var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.22.7';
+    const version = '1.14.23';
+
     /* ==========================================================
     |                                                           |
     |                      INITIALISATION                       |
@@ -139,12 +141,29 @@
             if ( parametres[ "sw-risibank-officiel" ] == true ) {
                 ajoutRisibankOfficiel();
             }
+            if ( parametres[ "sw-cat-toggle" ] == true ) {
+                if (parametres ["sw-litter-toggle"]==true){
+                    litter = true;
+                } else { litter = false;}
+                addCatboxButton();
+            }
             if ( parametres[ "sw-imgur-toggle" ] == true ) {
                 addImgurButton();
             }
             if ( parametres[ "sw-noel-toggle" ] == true ) {
                 addNoelshackButton();
             }
+            if ( parametres ["sw-catbox-embed"] == true) {
+                document.addEventListener('click', function(event) {
+                    const target = event.target;
+                    if (target.matches('.btn.btn-primary.preview-btn') && target.textContent.trim() === 'Prévisualiser') {
+                        // Apply transformation on form-group.preview p-4.text-black
+                        transformCatboxLinks('div.form-group.preview p-4.text-black a.link');
+                        transformCatboxLinks('.message-content a.link');
+                    }
+                });
+            }
+
             //if (parametres ["sw-pseudo-custom"] == true ){
             //    styleUsernameLink(pseudoimgTag);
             //}
@@ -175,6 +194,12 @@
             // Eviter la perte de nouveaux messages sur des topics lock ou supprimés
             if ( parametres[ "sw-prevoir-lock" ] == true ) {
                 eviterPerteNouveauMessage();
+            }
+            if (parametres["sw-heaulme"] == true){
+                replaceHeaulme();
+            }
+            if ( parametres ["sw-catbox-embed"] == true) {
+                transformCatboxLinks('div.message-content a.link');
             }
         }
         // LISTE DES TOPICS
@@ -216,7 +241,13 @@
         }
 
     }
+    function replaceHeaulme() {
+        var messageContents = document.querySelectorAll('.message-content');
+        messageContents.forEach(function(element) {
+            element.innerHTML = element.innerHTML.replace(/(?<!\s)heaulme(?!\s|x)/gi, 'o').replace(/heaulmex/gi, 'aux');
 
+        });
+    }
     /* ==========================================================
     |                                                           |
     |                         BORDEL                            |
@@ -248,6 +279,165 @@
             img.style.filter = 'hue-rotate(' + randomHue + 'deg) grayscale(' + randomGrayscale + ') brightness(' + (100 + randomBrightness) + '%) saturate(' + (100 + randomSaturation) + '%)';
         });
     }
+
+    function addCatboxButton() {
+        const formGroups = document.querySelectorAll('.bbcodes');
+
+
+    formGroups.forEach(formGroup => {
+        // Get the parent container of formGroup
+        const parentContainer = formGroup.parentNode;
+
+        const catboxDropzone = document.createElement('div');
+        catboxDropzone.className = 'catbox-dropzone';
+        catboxDropzone.style.outlineOffset = '-10px';
+        if (parametres ["sw-litter-toggle"]==false){
+            catboxDropzone.style.border = '2px dashed #805A40';
+        } else{
+            catboxDropzone.style.border = '2px dashed #7A94BD';
+            catboxDropzone.style.backgroundColor = '#1A2E4C';
+        }
+        catboxDropzone.style.width = '300px';
+        catboxDropzone.style.cursor= 'pointer';
+        catboxDropzone.style.padding = '30px';
+        catboxDropzone.style.textAlign = 'center';
+        catboxDropzone.style.margin = '0 auto';
+        catboxDropzone.style.fontSize = "12px"
+        catboxDropzone.style.display = 'none';
+        if (parametres ["sw-litter-toggle"]==false){
+        catboxDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u> (Catbox)<br><sub>Poids max. : 200Mo</sub>';
+        } else{
+        catboxDropzone.innerHTML = 'Deposez une image temporairement ici <u>ou cliquez ici</u> (Litterbox)<br><sub>Poids max. : 1Go, Durée de vie: 72h</sub>';
+        }
+        if (parametres ["sw-litter-toggle"]==false){
+            // Create URL input
+            const urlInput = document.createElement('input');
+            urlInput.type = 'text';
+            urlInput.placeholder = 'Entrez l\'URL de l\'image';
+            urlInput.style.width = '70%';
+            urlInput.style.color = '#805A40';
+            urlInput.style.border = '1px solid #805A40';
+            urlInput.style.backgroundColor = '#0005';
+            // Create button for URL upload
+            const urlUploadButton = document.createElement('button');
+            urlUploadButton.type = 'button';
+            urlUploadButton.style.backgroundColor ='#805A40';
+            urlUploadButton.style.color = 'black';
+            urlUploadButton.style.border = '1px solid #805A40';
+            urlUploadButton.textContent = 'Envoyer';
+            urlUploadButton.style.width = '30%';
+
+            // Add event listener to the button for handling URL upload
+            urlUploadButton.addEventListener('click', function (event) {
+                const imageUrl = urlInput.value.trim();
+                if (imageUrl !== '') {
+                    event.stopPropagation();
+                    uploadToCatbox(imageUrl, event, litter); // Pass the event to the function
+                    urlInput.value = ''; // Clear the input after processing
+                } else {
+                    alert('Veuillez entrer une URL valide.');
+                    event.stopPropagation();
+                }
+            });
+
+            // Add event listener to prevent file explorer from opening when clicking URL input
+            urlInput.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+
+            // Append URL input to dropzone
+            catboxDropzone.appendChild(urlInput);
+            catboxDropzone.appendChild(urlUploadButton);
+            // Create file input for click handling
+        }
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept ='image/jpeg, image/png, image/gif, image/apng, image/tiff, video/mp4, video/mpeg, video/avi, video/webm, video/x-matroska, video/x-flv, video/x-msvideo, video/x-ms-wmv, video/quicktime,.mkv, .flv, .avi, .wmv, .mov';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', handleFileInputC);
+
+        // Add event listener to catboxDropzone for click handling
+        catboxDropzone.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Add event listeners to the drop area
+        catboxDropzone.addEventListener('dragover', handleDragOverEnter);
+        catboxDropzone.addEventListener('dragenter', handleDragOverEnter);
+        catboxDropzone.addEventListener('drop', handleDropC);
+
+        // Append dropzone and file input as the first children of parentContainer
+        parentContainer.insertBefore(catboxDropzone, formGroup);
+        parentContainer.insertBefore(fileInput, formGroup);
+
+        // Create button to toggle dropzones
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'btn';
+        toggleButton.tabIndex = '-1';
+        toggleButton.dataset.type = 'catbox';
+        toggleButton.style.filter = 'grayscale(50%)'; // Set default to black and white
+        toggleButton.style.opacity = '0.8';
+        // Add event listeners for hover effect
+        toggleButton.addEventListener('mouseenter', function() {
+            toggleButton.style.filter = 'grayscale(0%)'; // Set to original color on hover
+            toggleButton.style.opacity = '1';
+        });
+
+        toggleButton.addEventListener('mouseleave', function() {
+            toggleButton.style.filter = 'grayscale(50%)'; // Set back to black and white on leave
+            toggleButton.style.opacity = '0.8';
+        });
+
+        // Create Imgur logo image
+        const catboxLogo = document.createElement('img');
+        catboxLogo.width = 15;
+        if (parametres ["sw-litter-toggle"]==false){
+        catboxLogo.src = 'https://tabbygarf.club/files/themes/stratoscript/catbox.png';
+        } else{
+        catboxLogo.src = 'https://tabbygarf.club/files/themes/stratoscript/litterbox.png';
+        }
+        catboxLogo.className = 'cat-logo';
+
+        // Append Imgur logo to the toggle button
+        toggleButton.appendChild(catboxLogo);
+
+        // Add event listener to toggle button
+        toggleButton.addEventListener('click', function() {
+            toggleDropzone('catbox-dropzone', this);
+            hideDropzone('imgur-dropzone', this);
+            hideDropzone('aveshack-dropzone', this);
+            hideDropzone('noelshack-dropzone',this);
+        });
+        // Get the existing aveshack button
+        const aveshackButton = parentContainer.querySelector('button[data-type="aveshack"]');
+        if (aveshackButton && aveshackButton.parentNode) {
+            aveshackButton.parentNode.insertBefore(toggleButton, aveshackButton.nextSibling);
+        }
+        if (parametres ["sw-imgur-toggle"] == false && ["sw-noelshack-toggle"] == false){
+
+        // Add event listener to aveshackButton if it exists
+        if (aveshackButton) {
+            // Check if there's an existing click event
+            const existingClickEvent = aveshackButton.onclick;
+
+            // Wrap the existing click event and the new functionality
+            aveshackButton.addEventListener('click', function() {
+                // Existing click event
+                if (existingClickEvent) {
+                    existingClickEvent();
+                }
+                // New functionality
+                hideDropzone('catbox-dropzone', this);
+                hideDropzone('imgur-dropzone', this);
+                hideDropzone('noelshack-dropzone', this);
+            });
+        }
+        }
+
+
+    });
+}
    // Function to add Imgur button and dropzone
     function addImgurButton() {
         const formGroups = document.querySelectorAll('.bbcodes');
@@ -267,7 +457,7 @@
         imgurDropzone.style.textAlign = 'center';
         imgurDropzone.style.margin = '0 auto';
         imgurDropzone.style.fontSize = "12px"
-        imgurDropzone.style.display = 'none'; // Initially hide imgur-dropzone
+        imgurDropzone.style.display = 'none'; 
         imgurDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u> (imgur)<br><sub>Poids max. : 20Mo (PNG, JPG) ; 200Mo (GIF, APNG)</sub>';
 
         // Create URL input
@@ -351,7 +541,7 @@
         // Create Imgur logo image
         const imgurLogo = document.createElement('img');
         imgurLogo.width = 15;
-        imgurLogo.src = 'https://i.imgur.com/ZJqz0x7.png';
+        imgurLogo.src = 'https://tabbygarf.club/files/themes/stratoscript/imgur.png';
         imgurLogo.className = 'imgur-logo';
 
         // Append Imgur logo to the toggle button
@@ -360,13 +550,17 @@
         // Add event listener to toggle button
         toggleButton.addEventListener('click', function() {
             toggleDropzone('imgur-dropzone', this);
+            hideDropzone('catbox-dropzone', this);
             hideDropzone('aveshack-dropzone', this);
             hideDropzone('noelshack-dropzone',this);
         });
 
         // Get the existing aveshack button
         const aveshackButton = parentContainer.querySelector('button[data-type="aveshack"]');
-
+        // Append the toggleButton after aveshackButton inside the formGroup
+        if (aveshackButton && aveshackButton.parentNode) {
+            aveshackButton.parentNode.insertBefore(toggleButton, aveshackButton.nextSibling);
+        }
         // Add event listener to aveshackButton if it exists
         if (aveshackButton) {
             // Check if there's an existing click event
@@ -379,15 +573,13 @@
                     existingClickEvent();
                 }
                 // New functionality
+                hideDropzone('catbox-dropzone', this);
                 hideDropzone('imgur-dropzone', this);
                 hideDropzone('noelshack-dropzone', this);
             });
         }
 
-        // Append the toggleButton after aveshackButton inside the formGroup
-        if (aveshackButton && aveshackButton.parentNode) {
-            aveshackButton.parentNode.insertBefore(toggleButton, aveshackButton.nextSibling);
-        }
+
     });
 }
 // Function to add Noelshack button and dropzone
@@ -455,7 +647,7 @@ function addNoelshackButton() {
         // Create Noelshack logo image
         const noelshackLogo = document.createElement('img');
         noelshackLogo.width = 15;
-        noelshackLogo.src = 'https://i.imgur.com/au6766C.png'; // Replace with the actual path to the Noelshack logo
+        noelshackLogo.src = 'https://tabbygarf.club/files/themes/stratoscript/noelshack.png'; // Replace with the actual path to the Noelshack logo
         noelshackLogo.className = 'noelshack-logo';
 
         // Append Noelshack logo to the toggle button
@@ -466,6 +658,7 @@ function addNoelshackButton() {
             toggleDropzone('noelshack-dropzone', this);
             hideDropzone('aveshack-dropzone', this);
             hideDropzone('imgur-dropzone', this);
+            hideDropzone('catbox-dropzone', this);
         });
         // Get the existing aveshack button
         const aveshackButton = parentContainer.querySelector('button[data-type="aveshack"]');
@@ -489,6 +682,7 @@ function addNoelshackButton() {
                     existingClickEvent();
                 }
                 // New functionality
+                hideDropzone('catbox-dropzone', this);
                 hideDropzone('imgur-dropzone', this);
                 hideDropzone('noelshack-dropzone', this);
             });
@@ -1013,6 +1207,7 @@ function addNoelshackButton() {
                     // Call the function to resize Imgur embeds
                 resizeImgurEmbeds(document.body);
                 }
+
                 // Odysee - Lecteurs
                 if ( parametres[ "sw-odysee" ] == true && urlCorrige.match( /https:\/\/odysee\.com\/(@.+)\/(.+:.+)/ ) ) {
                     // Créer le lecteur
@@ -2680,12 +2875,14 @@ function addNoelshackButton() {
         document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked = parametres[ "sw-masquer-inutile" ];
         document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked = parametres[ "sw-posts-url" ];
         document.getElementById( 'sw-rbc' ).querySelector( 'input' ).checked = parametres[ "sw-rbc" ];
+        document.getElementById( 'sw-catbox-embed' ).querySelector( 'input' ).checked = parametres[ "sw-catbox-embed" ];
         // Liste des topics
         document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-topics" ];
         document.getElementById( 'sw-antipute' ).querySelector( 'input' ).checked = parametres[ "sw-antipute" ];
         // Topic
         document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked = parametres[ "sw-refresh-posts" ];
         document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked = parametres[ "sw-recherche-posts" ];
+        document.getElementById( 'sw-heaulme' ).querySelector( 'input' ).checked = parametres[ "sw-heaulme" ];
         // Liste des MPs
         document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked = parametres[ "sw-btn-quitter-mp" ];
         // MPs
@@ -2702,6 +2899,8 @@ function addNoelshackButton() {
         document.getElementById( 'sw-risibank-officiel' ).querySelector( 'input' ).checked = parametres[ "sw-risibank-officiel" ];
         document.getElementById( 'sw-imgur-toggle' ).querySelector( 'input' ).checked = parametres[ "sw-imgur-toggle" ];
         document.getElementById( 'sw-noel-toggle' ).querySelector( 'input' ).checked = parametres[ "sw-noel-toggle" ];
+        document.getElementById( 'sw-cat-toggle' ).querySelector( 'input' ).checked = parametres[ "sw-cat-toggle" ];
+        document.getElementById( 'sw-litter-toggle' ).querySelector( 'input' ).checked = parametres[ "sw-litter-toggle" ];
         document.getElementById( 'sw-antigolem' ).querySelector( 'input' ).checked = parametres[ "sw-antigolem" ];
         //document.getElementById( 'sw-pseudo-custom' ).querySelector( 'input' ).checked = parametres[ "sw-pseudo-custom" ];
         document.getElementById( 'sw-mode-discret' ).querySelector( 'input' ).checked = parametres[ "sw-mode-discret" ];
@@ -2743,7 +2942,7 @@ function addNoelshackButton() {
 
         let css = '<style type="text/css"> /* Fix de histo de modé lorsque titre de topic trop long */ tbody a, tbody td:nth-of-type(4) { overflow-wrap: anywhere; } /* Fix des profils si long motif de ban sans espace */ div.surface div.text-center > div { overflow-wrap: anywhere; } /* ---------------- SLIDERS ---------------- */ /* The switch - the box around the slider */ .ss-switch { position: relative; display: inline-block; width: 60px; height: 34px; } /* Hide default HTML checkbox */ .ss-switch input { opacity: 0; width: 0; height: 0; } /* The slider */ .ss-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: 0.2s; transition: 0.2s; } .ss-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: #242529; -webkit-transition: 0.2s; transition: 0.2s; } input:checked + .ss-slider { background-color: #fdde02; } input:focus + .ss-slider { box-shadow: 0 0 1px #fdde02; } input:checked + .ss-slider:before { -webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px); } /* Rounded sliders */ .ss-slider.ss-round { border-radius: 34px; } .ss-slider.ss-round:before { border-radius: 50%; } /* FOND DU PANEL */ .ss-panel-background { display: none; /* Hidden by default */ flex-direction: row; align-items: center; position: fixed; /* Stay in place */ z-index: 1; /* Sit on top */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ flex-direction: column; } /* Icone X Fermer */ span.ss-panel-close { color: #262626; font-size: 24px; font-weight: bold; } span.ss-panel-close:hover, span.ss-panel-close:focus { color: black; text-decoration: none; cursor: pointer; } /* ZONE PANEL */ .ss-panel { display: flex; flex-direction: column; color: #bbb; font-family: Tahoma, sans-serif; background-color: #2f3136; border: 1px solid #ccc; width: 1000px; max-height: 90%; margin-top: 30px; } @media screen and (max-width: 1000px) { .ss-panel { width: 100%; } } /* ------------------- FORMULAIRES ------------------- */ .ss-btn { width: 100px; height: 40px; padding: 10px !important; background-color: #2f3136 !important; border: none; color: #c8c8c9 !important; user-select: none; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none !important; font-size: 16px; } .ss-btn:active { box-shadow: inset 1px 1px 5px black; } .ss-progressbar { background-color: #242529; height: 20px; width: 100px; } .ss-progressbar > * { text-align: center; vertical-align:middle; height: 100%; background-color: ; background: linear-gradient(orange, #fdde02, orange); color: #242529; } article .message-actions { display: flex !important; flex-direction: row; align-content: center; align-items: center; gap: 5px; } /* ------------------ STRUCTURE ------------------- */ .ss-panel-container { position:absolute; top:10vh; left:10vw; width:80vw; max-height:80vh; z-index:99999 } .ss-row { display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; } .ss-col { display: flex; flex-direction: column; } .ss-fill { flex-grow: 4; } .ss-full-width { width: 100%; } .ss-space-between { justify-content: space-between; } .ss-space-childs { gap: 5px; } .disabled { pointer-events: none; filter: opacity(25%); } .ss-vert { background-color: #2ab27b !important; color: white !important; } .ss-vert:hover { background-color: #20ce88 !important; } .ss-rouge { background-color: #bf5329 !important; color:white !important; } .ss-rouge:hover { background-color: #d9501a !important; } .ss-gris-clair { background-color: #ccc !important; color:#242529 !important; } .hidden { display: none !important; } @media screen and (min-width: 768px) { .ss-mobile-only { display: none !important; } } .ss-mini-post .topic-message .message-content { min-height: auto !important; } /* ------------------ PARTIES DU PANEL ------------------- */ /* EN-TÊTE */ .ss-panel-header { background-image: linear-gradient(to bottom right, black, lightgrey); height: 44px; width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items:center; } .ss-panel-header > img { height:24px; margin: 10px; } .ss-panel-header > .ss-panel-close { margin-right: 15px; margin-bottom: 4px; } /* Zone onglets */ .ss-panel-onglets { background-color: none; margin: 15px 15px 5px 15px; display: flex; flex-direction: row; justify-content: flex-start; align-items:center; border-bottom: 1px solid #3e3d3d; list-style: none; } /* Onglet */ .ss-panel-onglets div a { user-select: none; cursor: pointer; width: 100px; height: 40px; display: flex; flex-direction: row; justify-content: center; align-items:center; text-decoration: none; font-size: 16px; } .ss-panel-onglets .active a       { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets .active:hover a { color: #c8c8c9; background-color: #242529; } .ss-panel-onglets div:hover a     { color: #c8c8c9; background-color: #242529; } /* CORPS */ .ss-panel-body { display: flex; flex-direction: column; flex-wrap: wrap; margin: 10px; overflow-y: scroll; } .ss-zone { display: flex; flex-direction: column; flex-wrap: wrap; } .ss-text-hint { text-decoration: underline dotted; cursor: help;} .ss-mini-panel { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; flex: 1; } .ss-mini-panel-xs { display: flex; flex-direction: column; align-items: flex-start; margin:20px; padding: 10px; border: 1px solid #3e3d3d; } @media screen and (max-width: 800px) { .ss-mini-panel-xs { width: 100%; } } .ss-mini-panel > h3, .ss-mini-panel-xs > h3 { margin:-27px 0px 0px 0px; background-color:  #2f3136; padding-left: 10px; padding-right: 10px; font-size: 18px; font-weight:bold; line-height:1.5; } .ss-groupe-options { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; } .ss-option { align-items: center; display: inline-flex; margin:5px; width: 250px; } .ss-option div, .ss-label { margin: 5px; font-size: 15px; } .ss-option label { margin:0; } /* FOOTER */ .ss-panel-footer { display: flex; flex-direction: row; padding: 10px; border-top: 1px solid #3e3d3d; background-color: #242529; justify-content: space-between; align-items: center; padding-left: 30px; } /* SPECIFIQUES */ .ss-table-blacklist-forumeurs { color: #bbb; } .ss-sans-bordures { border: none; } .ss-table-blacklist-kw { color: #bbb; } .ss-sans-bordures { border: none; } .zone-resultats-recherche { width: 100%; } .ss-popup-profil { padding: 20px; display: flex; gap: 10px; left: 20px; bottom: 80px; background-color: rgba(255,75,75,.7); z-index: 99999; position: fixed; justify-content: flex-start; color: black; border-radius: 10px; flex-direction: column; align-items: stretch; align-content: flex-end; } .ss-popup-profil h3, .ss-popup-profil b { color: white; text-align: center; margin-top: 0px; } .ss-popup-profil div { gap: 10px; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; } .ss-bouton-profil { cursor: pointer; display: flex; left: 20px; bottom: 20px; background-color: #fd4949; height: 50px; width: 50px; z-index: 99999; position: fixed; border-radius: 50%; justify-content: center; align-items: center; color: white; } img.ss-remove-kw { cursor: pointer; }  img.ss-remove-btn { cursor: pointer;}</style>';
 
-        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://tabbygarf.club/files/themes/stratoscript/NzyZTYz.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> <div id="ss-onglet-autre"><a>Autre</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: block;"> <div class="ss-mini-panel"> <h3>Intégrations <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> </h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Twitter/X</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>IssouTV</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute un lecteur vidéo pour tout lien menant vers un fichier MP4 ou WEBM. (e.g. https://tabbygarf.club/etchebest.mp4)">Fichiers MP4 et WEBM</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Odysee</div> </div> <div class="ss-option"> <label id="sw-tiktok" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Tiktok</div> </div><div class="ss-option"> <label id="sw-insta" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Integre les posts insta.">Instagram</div> </div> <div class="ss-option"> <label id="sw-spotify" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Spotify </div> </div> <div class="ss-option"> <label id="sw-soundcloud" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Soundcloud</div> </div> <div class="ss-option"> <label id="sw-streamable" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute le lecteur officiel pour tous les liens streamable.com et staging.streamable.com.">Streamable</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Retire tous les liens morts d\'un message.">Masquer les 404</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Permet d\'avoir les messages AVN intégrés dans le post, à la place du lien.">URLs AVN (Posts)</div> </div>  <div class="ss-option"> <label id="sw-imgur" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Reduis la taille des photos Imgur (potentiellement) cancer, ignore les images qui servent de titre comme ceux du topic Modération ou d\'une bio.">Corrections Imgur</div> </div> <div class="ss-option"> <label id="sw-imgur-ex" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Reduis la taille de TOUTES les photos Imgur, dans une taille de sticker habituelle">Corrections Imgur (Extreme)</div> </div> <div class="ss-option"> <label id="sw-rbc" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Remplace les liens noelshacks mort par le cache risibank et integre les liens cache RB.">Risibank</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-antipute" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Dans la liste des sujets, le filtre mets tous les titres en minuscule, tout en retirant les emojis, laissant le texte faire le boulot de vous aguicher.">Filtre anti-putaclic</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel-xs"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Profils</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-custom-profils"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute un bouton qui permet de changer son profil, ou afficher les sources du profil des autres. Permet d\'exporter ou d\'importer un profil, de changer son profil sans changer son age">Outil de customization</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-prevoir-lock" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Mets un pop-up avant de poster le message si y\'a eu lock, suppression ou Cloudflare">Prévoir perte de message</div> </div> <div class="ss-option"> <label id="sw-option-supplementaires" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute des boutons a la barre de la zone de texte, permettant du texte en couleur, en puissance ou ajouter une tabulation." >Options supplémentaires</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> <div class="ss-option"> <label id="sw-risibank-officiel" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Risibank officiel</div> </div> <div class="ss-option ss-text-hint" title="Ajoute un bouton qui permet d\'upload sur imgur, il faudra accorder la permission au script de faire des requetes HTTP."> <label id="sw-imgur-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton Imgur</div> </div><div class="ss-option ss-text-hint" title="Ajoute un bouton qui permet d\'upload sur Noelshack, il faudra accorder la permission au script de faire des requetes HTTP."> <label id="sw-noel-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton Noelshack</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des forumeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un mot-clé</div> </div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Mot-clé" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_kw_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div class="ss-mini-panel"> <h3>Liste des mots-clés bloqués</h3> <table class="ss-table-blacklist-kw ss-full-width" id="ss-table-blacklist-kw"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Mot-clé</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> </tr> </tbody> </table> </div> </div> </div> </div> <!--FIN ONGLET BL --> <!-- ONGLET AUTRE--> <div id="ss-zone-autre" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Cosmétique</h3> <div class="ss-groupe-options"> <div class="ss-option ss-text-hint" title="Ajoute des lunettes anti-golem aux pfps par défaut."> <label id="sw-antigolem" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Sans avatars anti-golem</div> </div><div class="ss-option ss-text-hint" title="Change le logo et les pps."><label id="sw-mode-discret" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label><div>Mode discret</div> </div> <div class="ss-option"> <label id="sw-musique-profil" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Affiche les infos de la musique de profil, inspiré du plugin de Draekoort.">Identificateur de musique</div></div> </div> </div> </div> </div> </div> <!-- FIN ONGLET AUTRE --> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.14.8 by Stratosphere, Maintained with ♥ by StayNoided</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
+        let pannelHTML = '<div id="ss-panel-background" class="ss-panel-background"> <!-- Modal --> <div class="ss-panel"> <!-- En-tête --> <div class="ss-panel-header"> <img src="https://tabbygarf.club/files/themes/stratoscript/NzyZTYz.png" alt="Stratoscript"> <span class="ss-panel-close">&times;</span> </div> <!-- Onglets --> <div class="ss-panel-onglets"> <div id="ss-onglet-general" class="active"><a>Général</a></div> <div id="ss-onglet-blacklist"><a>Blacklist</a></div> <div id="ss-onglet-autre"><a>Autre</a></div> </div> <!-- Corps --> <div class="ss-panel-body"> <!-- ONGLET GENERAL --> <div id="ss-zone-general" class="ss-zone" style="display: block;"> <div class="ss-mini-panel"> <h3>Intégrations <label id="sw-corr-url-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> </h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-twitter" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Twitter/X</div> </div> <div class="ss-option"> <label id="sw-issoutv" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>IssouTV</div> </div> <div class="ss-option"> <label id="sw-pornhub" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>PornHub</div> </div> <div class="ss-option"> <label id="sw-mp4-webm" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute un lecteur vidéo pour tout lien menant vers un fichier MP4 ou WEBM. (e.g. https://tabbygarf.club/etchebest.mp4)">Fichiers MP4 et WEBM</div> </div> <div class="ss-option"> <label id="sw-odysee" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Odysee</div> </div> <div class="ss-option"> <label id="sw-tiktok" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Tiktok</div> </div><div class="ss-option"> <label id="sw-insta" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Integre les posts insta.">Instagram</div> </div> <div class="ss-option"> <label id="sw-spotify" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Spotify </div> </div> <div class="ss-option"> <label id="sw-soundcloud" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Soundcloud</div> </div> <div class="ss-option"> <label id="sw-streamable" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute le lecteur officiel pour tous les liens streamable.com et staging.streamable.com.">Streamable</div> </div> <div class="ss-option"> <label id="sw-masquer-inutile" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Retire tous les liens morts d\'un message.">Masquer les 404</div> </div> <div class="ss-option"> <label id="sw-posts-url" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Permet d\'avoir les messages AVN intégrés dans le post, à la place du lien.">URLs AVN (Posts)</div> </div>  <div class="ss-option"> <label id="sw-imgur" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Reduis la taille des photos Imgur (potentiellement) cancer, ignore les images qui servent de titre comme ceux du topic Modération ou d\'une bio.">Corrections Imgur</div> </div> <div class="ss-option"> <label id="sw-rbc" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Remplace les liens noelshacks mort par le cache risibank et integre les liens cache RB.">Risibank</div> </div> <div class="ss-option"> <label id="sw-catbox-embed" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Catbox/Litterbox</div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des topics</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-topics" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-antipute" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Dans la liste des sujets, le filtre mets tous les titres en minuscule, tout en retirant les emojis, laissant le texte faire le boulot de vous aguicher.">Filtre anti-putaclic</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Topic</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-refresh-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Autorefresh</div> </div> <div class="ss-option"> <label id="sw-recherche-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> <div class="ss-option"> <label id="sw-heaulme" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Remplace "heaulme" par "o" ou "au">Filtre anti-heaulme</div> </div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Liste des MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-btn-quitter-mp" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton de sortie de MP</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>MPs</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mp"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel-xs"> <h3>Mes messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-recherche-mes-messages"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Recherche</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Profils</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-custom-profils"  class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute un bouton qui permet de changer son profil, ou afficher les sources du profil des autres. Permet d\'exporter ou d\'importer un profil, de changer son profil sans changer son age">Outil de customization</div> </div> </div> </div> <div class="ss-mini-panel"> <h3>Messages</h3> <div class="ss-groupe-options"> <div class="ss-option"> <label id="sw-prevoir-lock" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Mets un pop-up avant de poster le message si y\'a eu lock, suppression ou Cloudflare">Prévoir perte de message</div> </div> <div class="ss-option"> <label id="sw-option-supplementaires" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Ajoute des boutons a la barre de la zone de texte, permettant du texte en couleur, en puissance ou ajouter une tabulation." >Options supplémentaires</div> </div> <div class="ss-option"> <label id="sw-formulaire-posts" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Formulaire flottant</div> </div> <div class="ss-option"> <label id="sw-risibank-officiel" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Risibank officiel</div> </div> <div class="ss-option ss-text-hint" title="Ajoute un bouton qui permet d\'upload sur imgur, il faudra accorder la permission au script de faire des requetes HTTP."> <label id="sw-imgur-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton Imgur</div> </div> <div class="ss-option ss-text-hint" title="Ajoute un bouton qui permet d\'upload sur Catbox/Litterbox, il faudra accorder la permission au script de faire des requetes HTTP."> <label id="sw-cat-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton Catbox</div> </div> <div class="ss-option ss-text-hint" title="Ajoute un bouton qui permet d\'upload sur Noelshack, il faudra accorder la permission au script de faire des requetes HTTP."> <label id="sw-noel-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Bouton Noelshack</div> </div> </div> </div> </div> </div> <!-- FIN ONGLET GENERAL --> <!-- ONGLET BLACKLIST --> <div id="ss-zone-blacklist" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un forumeur</div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Pseudo" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_forumeurs_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> </div> <div class="ss-mini-panel"> <h3>Liste des forumeurs bloqués</h3> <table class="ss-table-blacklist-forumeurs ss-full-width" id="ss-table-blacklist-forumeurs"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Pseudo</th> <th style="font-size: 12px;text-align: center;width:20%">Topics</th> <th style="font-size: 12px;text-align: center;width:20%">Posts</th> <th style="font-size: 12px;text-align: center;width:20%">Citations</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Jaaaaaj</td> <td><input id="ss-bl-topics" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-posts" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> <td><input id="ss-bl-citations" type="range" class="ss-full-width" id="ss-rg-blacklist-forumeurs" min="1" max="3"></td> </tr> </tbody> </table> </div> <div class="ss-row"> <div class="ss-mini-panel-xs ss-sans-bordures"> <div> <div class="ss-label">Blacklister un mot-clé</div> </div> <div class="ss-row"> <input type="text" class="ss-fill" placeholder="Mot-clé" style="height:36px;min-width:200px"> <button id="ss-btn_blacklist_kw_ajout" class="ss-btn ss-vert" type="button" style="height:36px;width:36px"><b style="transform: rotate(-45deg)">&times;</b></button> </div> </div> <div class="ss-mini-panel"> <h3>Liste des mots-clés bloqués</h3> <table class="ss-table-blacklist-kw ss-full-width" id="ss-table-blacklist-kw"> <thead style="background-image:linear-gradient(to bottom , #686868, #404040)"> <tr> <th style="font-size: 12px;width:30px"></th> <th style="font-size: 12px;">Mot-clé</th> </tr> </thead> <tbody> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">MachinTrucTrucTruc</td> </tr> <tr id="ss-bl-element"> <td>#</td> <td id="ss-bl-pseudo" class="ss-label">Bidoule</td> </tr> </tbody> </table> </div> </div> </div> </div> <!--FIN ONGLET BL --> <!-- ONGLET AUTRE--> <div id="ss-zone-autre" class="ss-zone ss-col" style="display: none;"> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Cosmétique</h3> <div class="ss-groupe-options"> <div class="ss-option ss-text-hint" title="Ajoute des lunettes anti-golem aux pfps par défaut."> <label id="sw-antigolem" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Sans avatars anti-golem</div> </div><div class="ss-option ss-text-hint" title="Change le logo et les pps."><label id="sw-mode-discret" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label><div>Mode discret</div> </div> <div class="ss-option"> <label id="sw-musique-profil" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Affiche les infos de la musique de profil, inspiré du plugin de Draekoort.">Identificateur de musique</div></div> </div> </div> </div> <div class="ss-row"> <div class="ss-mini-panel-xs"> <h3>Personnalisations Supplémentaires</h3> <div class="ss-groupe-options"> <div class="ss-option ss-text-hint" title="Transforme les uploads Catbox en upload Litterbox, ce qui augmente la taille a 1GO, mais expire apres 72h."> <label id="sw-litter-toggle" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div>Uploads Catbox Temporaires</div> </div> <div class="ss-option"> <label id="sw-imgur-ex" class="ss-switch"><input type="checkbox"><span class="ss-slider ss-round"></span></label> <div class="ss-text-hint" title="Reduis la taille de TOUTES les photos Imgur, dans une taille de sticker habituelle">Corrections Imgur (Extreme) </div> </div> </div> </div> </div> </div> </div> <!-- FIN ONGLET AUTRE --> <!-- Footer --> <div class="ss-panel-footer"> <span class="label" id="ss-version">Version 1.14.8 by Stratosphere, Maintained with ♥ by StayNoided</span> <div class="ss-row ss-space-childs"> <button type="button" class="ss-btn ss-panel-close">Fermer</button> <button type="button" class="ss-btn ss-panel-valider ss-vert" id="btn-validation-parametres">Valider</button> </div> </div> </div> <!-- Fin modal --> </div>';
 
         pannelHTML += css;
 
@@ -2990,12 +3189,14 @@ function addNoelshackButton() {
                 parametres[ "sw-streamable" ] = document.getElementById( 'sw-streamable' ).querySelector( 'input' ).checked;
                 parametres[ "sw-masquer-inutile" ] = document.getElementById( 'sw-masquer-inutile' ).querySelector( 'input' ).checked;
                 parametres[ "sw-posts-url" ] = document.getElementById( 'sw-posts-url' ).querySelector( 'input' ).checked;
+                parametres[ "sw-catbox-embed" ] = document.getElementById( 'sw-catbox-embed' ).querySelector( 'input' ).checked;
                 // Liste des topics
                 parametres[ "sw-refresh-topics" ] = document.getElementById( 'sw-refresh-topics' ).querySelector( 'input' ).checked;
                 parametres[ "sw-antipute" ] = document.getElementById( 'sw-antipute' ).querySelector( 'input' ).checked;
                 // Topic
                 parametres[ "sw-refresh-posts" ] = document.getElementById( 'sw-refresh-posts' ).querySelector( 'input' ).checked;
                 parametres[ "sw-recherche-posts" ] = document.getElementById( 'sw-recherche-posts' ).querySelector( 'input' ).checked;
+                parametres[ "sw-heaulme" ] = document.getElementById( 'sw-heaulme' ).querySelector( 'input' ).checked;
                 // Liste des MPs
                 parametres[ "sw-btn-quitter-mp" ] = document.getElementById( 'sw-btn-quitter-mp' ).querySelector( 'input' ).checked;
                 // MPs
@@ -3012,6 +3213,8 @@ function addNoelshackButton() {
                 parametres[ "sw-risibank-officiel" ] = document.getElementById( 'sw-risibank-officiel' ).querySelector( 'input' ).checked;
                 parametres[ "sw-imgur-toggle" ] = document.getElementById( 'sw-imgur-toggle' ).querySelector( 'input' ).checked;
                 parametres[ "sw-noel-toggle" ] = document.getElementById( 'sw-noel-toggle' ).querySelector( 'input' ).checked;
+                parametres[ "sw-cat-toggle" ] = document.getElementById( 'sw-cat-toggle' ).querySelector( 'input' ).checked;
+                parametres[ "sw-litter-toggle" ] = document.getElementById( 'sw-litter-toggle' ).querySelector( 'input' ).checked;
                 parametres[ "sw-antigolem" ] = document.getElementById( 'sw-antigolem' ).querySelector( 'input' ).checked;
                 // parametres[ "sw-pseudo-custom" ] = document.getElementById( 'sw-pseudo-custom' ).querySelector( 'input' ).checked;
                 parametres[ "sw-mode-discret" ] = document.getElementById( 'sw-mode-discret' ).querySelector( 'input' ).checked;
@@ -3311,6 +3514,92 @@ function addNoelshackButton() {
             },
         });
     }
+
+
+    async function convertFormDataToBlob(formData, boundary) {
+        const chunks = [];
+
+        for (let [key, value] of formData.entries()) {
+            chunks.push(`--${boundary}\r\n`);
+            if (value instanceof File) {
+                const fileBuffer = await value.arrayBuffer();
+                const uint8Array = new Uint8Array(fileBuffer);
+
+                chunks.push(`Content-Disposition: form-data; name="${key}"; filename="${value.name}"\r\n`);
+                chunks.push(`Content-Type: ${value.type}\r\n\r\n`);
+                chunks.push(uint8Array);
+                chunks.push('\r\n');
+            } else {
+                chunks.push(`Content-Disposition: form-data; name="${key}"\r\n\r\n`);
+                chunks.push(value + '\r\n');
+            }
+        }
+
+        chunks.push(`--${boundary}--\r\n`);
+        return new Blob(chunks, { type: 'multipart/form-data; boundary=' + boundary });
+    }
+
+    async function uploadToCatbox(fileOrUrl, event, t = false) {
+        const catboxApiUrl = t ? 'https://litterbox.catbox.moe/resources/internals/api.php' : 'https://catbox.moe/user/api.php';
+        const expiryTime = '72h';
+        const boundary = "----WebKitFormBoundary" + Math.random().toString(36).substr(2);
+
+        const formData = new FormData();
+
+        if (typeof fileOrUrl === 'string') {
+            // URL upload
+            formData.append('reqtype', 'urlupload');
+            formData.append('url', fileOrUrl);
+        } else if (fileOrUrl instanceof File) {
+            // File upload
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', fileOrUrl);
+            if (t) {
+                formData.append('time', expiryTime);
+            }
+        } else {
+            console.error('Invalid argument. Expected File or URL.');
+            return;
+        }
+
+        // Debug: Log the formData
+        for (let pair of formData.entries()) {
+            console.log(pair[0]+ ': ' + pair[1]);
+        }
+
+        // Serialize FormData for GM_xmlhttpRequest
+        // Convert FormData to a Blob for GM_xmlhttpRequest
+        const body = await convertFormDataToBlob(formData, boundary);
+        console.log('FormData:', formData);
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: catboxApiUrl,
+            data: body,
+            binary: true,
+            headers: {
+                'Content-Type': 'multipart/form-data; boundary=' + boundary
+            },
+            onload: function(response) {
+                console.log('Uploaded successfully:', response.responseText);
+
+                const uploadButton = event.target;
+                const closestTextarea = findClosestTextarea(uploadButton);
+
+                if (closestTextarea) {
+                    const catboxLink = response.responseText.trim();
+                    const cursorPos = closestTextarea.selectionStart;
+                    const textBeforeCursor = closestTextarea.value.substring(0, cursorPos);
+                    const textAfterCursor = closestTextarea.value.substring(cursorPos);
+
+                    closestTextarea.value = textBeforeCursor + catboxLink + textAfterCursor;
+                }
+            },
+            onerror: function(error) {
+                console.error('Upload failed:', error);
+
+            }
+        });
+    }
     function uploadToNoelshack(file, event) {
         const formData = new FormData();
         formData.append('fichier', file);
@@ -3394,6 +3683,23 @@ function addNoelshackButton() {
             uploadToImgur(imageUrl, event);
         }
     }
+    function handleDropC(event) {
+        event.preventDefault();
+
+        const dataTransfer = event.dataTransfer;
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+
+        // Check if files were dropped
+        if (dataTransfer && dataTransfer.files.length > 0) {
+            const file = dataTransfer.files[0];
+            uploadToCatbox(file, event, litter);
+        } else if (urlInput.value.trim() !== '') {
+            // Check if URL input is not empty
+            const imageUrl = urlInput.value.trim();
+            uploadToCatbox(imageUrl, event, litter);
+        }
+    }
         // Function to handle file drop or URL input
     function handleDropN(event) {
         event.preventDefault();
@@ -3429,6 +3735,13 @@ function addNoelshackButton() {
             uploadToImgur(file, event);
         }
     }
+    function handleFileInputC(event) {
+        const fileInput = event.target;
+        const file = fileInput.files[0];
+        if (file) {
+            uploadToCatbox(file, event, litter);
+        }
+    }
     // Function to handle file selection via click
     function handleFileInputN(event) {
         const fileInput = event.target;
@@ -3453,6 +3766,46 @@ function addNoelshackButton() {
         const dropzone = parentContainer.querySelector(`.${dropzoneClass}`);
         if (dropzone) {
             dropzone.style.display = 'none';
+        }
+    }
+
+
+
+
+    function transformCatboxLinks(selector) {
+        // Find all <a> elements with class 'link' inside the specified selector
+        const linkElements = document.querySelectorAll(selector);
+
+        linkElements.forEach(linkElement => {
+            const href = linkElement.getAttribute('href');
+            const title = linkElement.getAttribute('title');
+
+            // Check if the href points to a Catbox link
+            if (isCatboxLink(href)) {
+                // Create the new <img> element
+                const imgElement = document.createElement('img');
+                imgElement.setAttribute('src', href);
+                imgElement.setAttribute('alt', title || href); // Use title or fallback to href for alt text
+                imgElement.classList.add('catbox-image');
+                imgElement.style.maxWidth = '50%'; // Set max width to 50%
+
+                // Replace the original <a class="link"> with the new <img> element
+                linkElement.parentNode.replaceChild(imgElement, linkElement);
+
+            }
+
+        });
+    }
+
+    // Function to check if a URL is a Catbox link
+    function isCatboxLink(url) {
+        const catboxDomains = ['files.catbox.moe', 'litter.catbox.moe'];
+        try {
+            const urlObj = new URL(url);
+            return catboxDomains.includes(urlObj.hostname);
+        } catch (error) {
+            console.error('Invalid URL:', url);
+            return false;
         }
     }
 
