@@ -8,11 +8,7 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 
 
 ### DERNIERE MISE A JOUR (1.14.13.X)
-> Ajout du upload Imgur, marche identiquement a celui pour aveshack! (Messages > Bouton Imgur)
-> 
-> Ajout d'un surlignement de pseudo. Pour ceux qui s'y perdent. (Autres > Cosmétiques)
-> 
-> Rendu les avatars anti-golem "opt-in" (Autres > Cosmétiques)</spoiler>
+> Ajout du upload Catbox, avec embed des fichiers catbox/Litterbox!
 
 ### Installation sur PC
 > Installez l'extension Tampermonkey sur votre navigateur
