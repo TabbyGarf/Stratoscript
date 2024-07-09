@@ -26,7 +26,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.1';
+    const version = '1.14.23.2';
 
     /* ==========================================================
     |                                                           |
