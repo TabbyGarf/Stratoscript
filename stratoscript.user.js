@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.2
-// @description  1.14.23.2 > suppression filtre anti heaulme car brise les spoilers et sondages
+// @version      1.14.23.3
+// @description  1.14.23.3 > ajout des movs et mkv dans integration.
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -26,7 +26,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.2';
+    const version = '1.14.23.3';
 
     /* ==========================================================
     |                                                           |
@@ -1459,9 +1459,9 @@ function addNoelshackButton() {
 
             } else {
                 // .WEBM et .MP4
-                if ( parametres[ "sw-mp4-webm" ] == true && url.match( /(https:\/\/(.+)(\.mp4|\.webm))/ ) ) {
+                if ( parametres[ "sw-mp4-webm" ] == true && url.match( /(https:\/\/(.+)(\.mp4|\.webm|\.mov|\.mkv))/ ) ) {
                     // Gérer l'URL
-                    let url_video = /(https:\/\/(.+)(\.mp4|\.webm))/.exec( url )[ 1 ];
+                    let url_video = /(https:\/\/(.+)(\.mp4|\.webm|\.mov|\.mkv))/.exec( url )[ 1 ];
                     // Créer le lecteur
                     let video = document.createElement( "video" );
                     video.setAttribute( "src", url_video + "#t=0.1" );
