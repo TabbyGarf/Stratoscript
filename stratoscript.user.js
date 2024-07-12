@@ -1143,7 +1143,7 @@ function addNoelshackButton() {
         // Trouver tous les URLs dans les posts
         document.querySelectorAll( '.message-content a' ).forEach( async function ( e ) {
 
-            let url = e.getAttribute( 'href' );
+            let url = e.textContent || e.innerText;
 
             // Correction d'URL
             if ( parametres[ "sw-corr-url-odysee" ] == true ) {
