@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.3
-// @description  1.14.23.3 > ajout des movs et mkv dans integration.
+// @version      1.14.23.4
+// @description  1.14.23.4 > fix bug récursive des intégrations des post avn  
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -26,7 +26,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.3';
+    const version = '1.14.23.4';
 
     /* ==========================================================
     |                                                           |
