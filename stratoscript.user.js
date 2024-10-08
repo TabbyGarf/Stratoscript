@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.5
-// @description  1.14.23.5 > fix bug liens catbox audio non cliquables + ajout embed lecteurs audio    
+// @version      1.14.23.6
+// @description  1.14.23.6 > bugfix detection des urls pour toutes les integrations    
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -26,7 +26,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.5';
+    const version = '1.14.23.6';
 
     /* ==========================================================
     |                                                           |
@@ -102,7 +102,6 @@
     }
 
     async function initialisation() {
-        // Script Twiter
         if ( parametres[ "sw-twitter" ] == true ) {
             var s = document.createElement( "script" );
             s.type = "text/javascript";
@@ -1143,7 +1142,7 @@ function addNoelshackButton() {
         // Trouver tous les URLs dans les posts
         document.querySelectorAll( '.message-content a' ).forEach( async function ( e ) {
 
-            let url = e.textContent || e.innerText;
+            let url = e.href || e.innerText;
 
             // Correction d'URL
             if ( parametres[ "sw-corr-url-odysee" ] == true ) {
@@ -1496,20 +1495,28 @@ function addNoelshackButton() {
             }
 
             // Twitter
-            if ( parametres[ "sw-twitter" ] == true && url.match( /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/ ) ) {
+            if (parametres["sw-twitter"] === true && url.match(/https?:\/\/(?:www\.)?(?:twitter|x)\.com\/(?:#!\/)?(\w+)\/status\/(\d+)/)) {
+
+                const match = url.match(/https?:\/\/(?:www\.)?(?:twitter|x)\.com\/(?:#!\/)?(\w+)\/status\/(\d+)/);
+                const id_compte = match[1]; // Captured username
+                const id_tweet = match[2]; // Captured Tweet ID
                 let htmlTweet;
-                let id_compte = /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 2 ];
-                let id_tweet = /(https:\/\/twitter\.com\/|https:\/\/x\.com\/|https:\/\/mobile\.x\.com\/|https:\/\/mobile\.twitter\.com\/)(.+)\/status\/([0-9]+)/.exec( url )[ 3 ];
+                console.log(match);
+                console.log("Username:", id_compte);
+                console.log("Tweet ID:", id_tweet);
                 await $.ajax( {
                     type: "GET",
-                    url: "https://publish.twitter.com/oembed?url=https://twitter.com/" + id_compte + "/status/" + id_tweet,
+                    url: "https://publish.twitter.com/oembed?url=https://twitter.com/" + id_compte + "/status/" + id_tweet + "&dnt=true",
                     dataType: "jsonp",
                     success: function ( retour ) {
                         htmlTweet = retour.html;
+                                        console.log(htmlTweet);
                         // Ramplacer le lien par le tweet
                         e.parentNode.innerHTML = htmlTweet;
                     }
                 } );
+            }else {
+                console.log("The URL" + url + "does not match a Twitter/X status URL");
             }
 
             // PornHub
@@ -3798,7 +3805,7 @@ async function identifyTrack() {
         const cleanedAuthorName = authorName.replace(/(?: - Topic|VEVO|Official)$/, '');
 
         // Check for common separators in the title
-        const separators = [' - ', ' | ', ' / ', ' : '];
+        const separators = [' - ', ' | ', ' / ', ' : ', ' – '];
         let separatorFound = false;
         let cleanedTitleWithoutSeparator = title.trim();
 
@@ -3828,7 +3835,7 @@ async function identifyTrack() {
             }
             return null;
         }
-
+        cleanedTitleWithoutSeparator = cleanedTitleWithoutSeparator.replace(/[\(\[\{](?:official|audio|lyrics|visualizer|visualiser|album|offical|officiel)[^\)\]\}]*[\)\]\}]/gi, '').trim();
         // Create elements for cleaned author name and title
         const authorElement = document.createElement('span');
         authorElement.textContent = effectiveAuthorName || '';
