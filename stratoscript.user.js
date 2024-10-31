@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.6
-// @description  1.14.23.6 > bugfix detection des urls pour toutes les integrations    
+// @version      1.14.23.7
+// @description  1.14.23.7 > Prevention des intégrations recursive des posts AVN une fois qu'un spoiler est cliqué.
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -26,7 +26,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.6';
+    const version = '1.14.23.7';
 
     /* ==========================================================
     |                                                           |
@@ -1197,6 +1197,11 @@ function addNoelshackButton() {
                 resizeImgurEmbeds(document.body);
                 }
 
+                document.querySelectorAll('.apercite-image').forEach(element => {
+                    // Remove each element from the DOM
+                    element.remove();
+                });
+
                 // Odysee - Lecteurs
                 if ( parametres[ "sw-odysee" ] == true && urlCorrige.match( /https:\/\/odysee\.com\/(@.+)\/(.+:.+)/ ) ) {
                     // Créer le lecteur
@@ -1397,35 +1402,41 @@ function addNoelshackButton() {
 
 
             // Posts d'AVN
-            if ( parametres[ "sw-posts-url" ] == true && url.match( /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/ ) ) {
-                // Récupérer le post
-                let id_post = /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/.exec( url )[ 3 ];
-                let url_post = 'https://avenoel.org/' + indexPhp + 'message/' + id_post;
-                let doc_post = await getDoc( url_post );
-                // Créer le post
-                let postIntegre;
-                if ( doc_post.querySelector( '.topic-message' ) != null ) {
-                    postIntegre = doc_post.querySelector( '.topic-message' ).cloneNode( true );
-                    postIntegre.setAttribute( "style", "margin:10px" );
-                    // Gérer la couleur du post
-                    if ( !e.parentNode.parentNode.parentNode.parentNode.classList.contains( 'odd' ) ) {
-                        postIntegre.setAttribute( "class", "flex row topic-message odd" );
-                    } else if ( e.parentNode.parentNode.parentNode.parentNode.classList.contains( 'odd' ) ) {
-                        postIntegre.setAttribute( "class", "flex row topic-message" );
-                    }
+            if (
+                parametres["sw-posts-url"] === true && url.match(/((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/) && !e.parentNode.classList.contains("embedded-post")) {
 
+                e.parentNode.classList.add("embedded-post");
+
+                let id_post = /((https:\/\/avenoel\.org\/index\.php\/message\/|https:\/\/avenoel\.org\/index\.php\/topic\/.+#|https:\/\/avenoel\.org\/message\/|https:\/\/avenoel\.org\/topic\/.+#)([0-9]+))/.exec(url)[3];
+                let url_post = 'https://avenoel.org/' + indexPhp + 'message/' + id_post;
+                let doc_post = await getDoc(url_post);
+
+                let postIntegre;
+                if (doc_post.querySelector('.topic-message') != null) {
+                    postIntegre = doc_post.querySelector('.topic-message').cloneNode(true);
+                    postIntegre.setAttribute("style", "margin:10px");
+
+                    postIntegre.classList.add("embedded-post");
+                    postIntegre.querySelectorAll("*").forEach(element => {
+                        element.classList.add("embedded-post");
+                    });
+
+                    if (!e.parentNode.parentNode.parentNode.parentNode.classList.contains('odd')) {
+                        postIntegre.setAttribute("class", "flex row topic-message odd embedded-post");
+                    } else {
+                        postIntegre.setAttribute("class", "flex row topic-message embedded-post");
+                    }
                 } else {
-                    postIntegre = document.createElement( "div" );
-                    postIntegre.setAttribute( "class", "topic-message message-deleted" );
-                    postIntegre.setAttribute( "style", "margin:10px; padding:5px; display: flex;align-items: center;justify-content: center;" );
+                    postIntegre = document.createElement("div");
+                    postIntegre.setAttribute("class", "topic-message message-deleted embedded-post");
+                    postIntegre.setAttribute("style", "margin:10px; padding:5px; display: flex; align-items: center; justify-content: center;");
                     postIntegre.textContent = 'Message introuvable';
                 }
-                // Ajouter le post
-                e.parentNode.parentNode.replaceChild( postIntegre, e.parentNode );
-                // Supprimer le lien et un <br> en dessous
+
+                e.parentNode.parentNode.replaceChild(postIntegre, e.parentNode);
+
                 e.parentNode.parentNode.remove();
             }
-
             // IssouTV
             if ( parametres[ "sw-issoutv" ] == true && url.match( /(https:\/\/(issoutv\.com)(.+)\/(.+))/ ) ) {
                 // Gérer l'URL IssouTV
@@ -1546,18 +1557,19 @@ function addNoelshackButton() {
                 // Find the closest parent with the class 'spoiler'
                 let spoilerContainer = spoilerBtn.closest('.spoiler');
 
-                // Check if a spoiler-container was found
-                if (spoilerContainer) {
-                    // Find the associated spoiler-content div
+                // Check if spoilerContainer is found and is the direct parent of spoilerBtn
+                if (spoilerContainer && spoilerContainer === spoilerBtn.parentElement) {
+                    // Delay to ensure the content is fully ready
                     setTimeout(function () {
                         let spoilerContent = spoilerContainer.querySelector('.spoiler-content');
+
                         // Parse and embed links within the spoiler-content
                         ajoutLecteursEtIntegrations(spoilerContent);
-                        if (parametres[ "sw-imgur"] == true || parametres[ "sw-imgur-ex"] == true) {
+
+                        // Check Imgur parameters and resize if necessary
+                        if (parametres["sw-imgur"] === true || parametres["sw-imgur-ex"] === true) {
                             resizeImgurEmbeds(spoilerContent);
                         }
-
-
                     }, 100);
                 }
             });
