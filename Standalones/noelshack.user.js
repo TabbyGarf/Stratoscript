@@ -202,6 +202,7 @@ function addNoelshackButton() {
             toggleDropzone('noelshack-dropzone', this);
             hideDropzone('aveshack-dropzone', this);
             hideDropzone('imgur-dropzone', this);
+            hideDropzone('catbox-dropzone', this);
         });
         // Get the existing aveshack button
         const aveshackButton = parentContainer.querySelector('button[data-type="aveshack"]');
@@ -228,6 +229,7 @@ function addNoelshackButton() {
                 // New functionality
                 hideDropzone('imgur-dropzone', this);
                 hideDropzone('noelshack-dropzone', this);
+                hideDropzone('catbox-dropzone', this);
             });
         }
 
