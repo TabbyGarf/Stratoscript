@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.7
-// @description  1.14.23.7 > Prevention des intégrations recursive des posts AVN une fois qu'un spoiler est cliqué.
+// @version      1.14.23.8
+// @description  1.14.23.8 > Ajout de deux boutons citations dans option supplémentaires.
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
 // @run-at       document-body
 // @grant        GM_xmlhttpRequest
+// @updateURL    https://raw.githubusercontent.com/TabbyGarf/Stratoscript/main/stratoscript.user.js
+// @downloadURL  https://raw.githubusercontent.com/TabbyGarf/Stratoscript/main/stratoscript.user.js
 // ==/UserScript==
 
 /* jshint esversion: 8 */
@@ -26,7 +28,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.7';
+    const version = '1.14.23.8';
 
     /* ==========================================================
     |                                                           |
@@ -1065,77 +1067,129 @@ function addNoelshackButton() {
         */
     }
 
-    // Appliquer la blacklist sur les posts
-    async function appliquer_blacklist_posts( page ) {
-        let niveau_blocage = 2;
-        if ( parametres[ "ss-rg-blacklist-forumeurs" ] != null && parametres[ "ss-rg-blacklist-forumeurs" ] != '' ) {
-            niveau_blocage = parametres[ "ss-rg-blacklist-forumeurs" ];
-        }
-        // Couleur du post
-        let prochain_post_bleu = true;
-        // Parcourir tous les messages du topic
-        page.querySelectorAll( '.topic-messages > article' ).forEach( function ( e ) {
-
-            // Appliquer la blacklist de pseudos
-            if ( e.querySelector( '.message-username' ) ) {
-                let pseudo = e.querySelector( '.message-username a' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
-                blacklist_pseudos.forEach( function ( e_blackist, i ) {
-                    // Si l'auteur du post est BL
-                    if ( pseudo == e_blackist.pseudo ) {
-                        // Si l'auteur du post est BL
-                        if ( e_blackist.blocage_posts == 2 ) {
-                            e.querySelector( '.message-content' ).textContent = ' [ Contenu blacklisté ] ';
-                            e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                        } else if ( e_blackist.blocage_posts == 3 ) {
-                            e.innerHTML = '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
-                            e.setAttribute( 'style', 'background-color: rgba(247,24,24,.2)' );
-                        } else if ( e_blackist.blocage_posts == 4 ) {
-                            e.remove();
-                            // Màj couleur post
-                            prochain_post_bleu = !prochain_post_bleu;
-                        }
-                    }
-                } );
-                // Gérer les couleurs des posts en cas de suppression
-                if ( prochain_post_bleu && !e.classList.contains( 'odd' ) ) {
-                    e.classList.add( 'odd' );
-                }
-                if ( !prochain_post_bleu && e.classList.contains( 'odd' ) ) {
-                    e.classList.remove( 'odd' );
-                }
-                // Màj couleur post
-                prochain_post_bleu = !prochain_post_bleu;
-            }
-        } );
-
-        // Parcourir toutes les citations du topic
-        page.querySelectorAll( 'blockquote' ).forEach( function ( e ) {
-            // Appliquer la blacklist de pseudos
-            if ( e.querySelector( '.message-content-quote-author' ) ) {
-                let pseudo = e.querySelector( '.message-content-quote-author' ).textContent.replace( /(\r\n|\n|\r)/gm, "" ).trim();
-
-                blacklist_pseudos.forEach( function ( e_blackist, i ) {
-                    // Si l'auteur du post est BL
-                    if ( pseudo == e_blackist.pseudo ) {
-                        // Si l'auteur du post est BL
-                        if ( e_blackist.blocage_citations == 2 ) {
-                            let pseudo_cite = document.querySelector( 'blockquote' ).querySelector( '.message-content-quote-caption' );
-                            let div = document.createElement( 'div' );
-                            div.innerText = '[ Contenu blacklisté ]';
-                            e.innerHTML = "";
-                            e.appendChild( pseudo_cite );
-                            e.appendChild( div );
-                        } else if ( e_blackist.blocage_citations == 3 ) {
-                            e.textContent = " [ Contenu blacklisté ] ";
-                        } else if ( e_blackist.blocage_citations == 4 ) {
-                            e.parentNode.parentNode.parentNode.remove();
-                        }
-                    }
-                } );
-            }
-        } );
-
+// Appliquer la blacklist sur les posts
+async function appliquer_blacklist_posts(page) {
+    let niveau_blocage = 2;
+    if (parametres["ss-rg-blacklist-forumeurs"] != null && parametres["ss-rg-blacklist-forumeurs"] !== '') {
+        niveau_blocage = parametres["ss-rg-blacklist-forumeurs"];
     }
+    // Couleur du post
+    let prochain_post_bleu = true;
+
+     // Helper function: Check for blacklisted keywords in an element and its children
+    function checkForBlacklistedKeywords(element, blacklist_kw) {
+        let containsBlacklist = false;
+
+        // Check the current element's text content
+        blacklist_kw.forEach(function (blacklistedKeyword) {
+            if (element.textContent.includes(blacklistedKeyword)) {
+                containsBlacklist = true;
+            }
+        });
+
+        // If the current element is a span with class "board", check its 'data-link' attribute
+        if (
+            element.classList &&
+            element.classList.contains("board") &&
+            element.getAttribute("data-link")
+        ) {
+            let dataLink = element.getAttribute("data-link");
+            blacklist_kw.forEach(function (blacklistedKeyword) {
+                if (dataLink.includes(blacklistedKeyword)) {
+                    containsBlacklist = true;
+                }
+            });
+        }
+
+        // Recursively check all child nodes
+        element.childNodes.forEach(function (child) {
+            if (!containsBlacklist) {
+                containsBlacklist = checkForBlacklistedKeywords(child, blacklist_kw);
+            }
+        });
+
+        return containsBlacklist;
+    }
+
+    // Traverse all messages in the topic
+    page.querySelectorAll(".topic-messages > article").forEach(function (article) {
+        console.log("Inspecting element:", article);
+
+        // Apply blacklist to pseudos
+        if (article.querySelector(".message-username")) {
+            let pseudo = article
+                .querySelector(".message-username a")
+                .textContent.replace(/(\r\n|\n|\r)/gm, "")
+                .trim();
+            blacklist_pseudos.forEach(function (e_blackist) {
+                if (pseudo === e_blackist.pseudo) {
+                    if (e_blackist.blocage_posts === 2) {
+                        let messageContent = article.querySelector(".message-content");
+                        if (messageContent) {
+                            messageContent.textContent = " [ Contenu blacklisté ] ";
+                        }
+                        article.setAttribute(
+                            "style",
+                            "background-color: rgba(247,24,24,.2)"
+                        );
+                    } else if (e_blackist.blocage_posts === 3) {
+                        article.innerHTML =
+                            '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
+                        article.setAttribute(
+                            "style",
+                            "background-color: rgba(247,24,24,.2)"
+                        );
+                    } else if (e_blackist.blocage_posts === 4) {
+                        article.remove();
+                        console.log("Removed element:", article);
+                        prochain_post_bleu = !prochain_post_bleu;
+                    }
+                }
+                console.log("Inspecting <article> element:", article);
+
+                // Look for .message-wrapper inside the <article>
+                let messageWrapper = article.querySelector(".message-wrapper");
+                if (!messageWrapper) {
+                    console.log("No .message-wrapper found in this <article>");
+                    return;
+                }
+
+                // Look for .message-content inside the .message-wrapper
+                let messageContent = messageWrapper.querySelector(".message-content");
+                if (!messageContent) {
+                    console.log("No .message-content found in this .message-wrapper");
+                    return;
+                }
+
+                // Check if .message-content contains blacklisted keywords or children with the board tag
+                if (checkForBlacklistedKeywords(messageContent, blacklist_kw)) {
+                    console.log("Blacklisted content found in .message-content:", messageContent);
+
+                    // Apply blacklist styling or modification
+                    messageContent.textContent = " [ Contenu blacklisté ] ";
+                    article.setAttribute("style", "background-color: rgba(247,24,24,.2)");
+                }
+
+                // Handle post colors after processing
+                if (prochain_post_bleu && !article.classList.contains("odd")) {
+                    article.classList.add("odd");
+                }
+                if (!prochain_post_bleu && article.classList.contains("odd")) {
+                    article.classList.remove("odd");
+                }
+
+                // Toggle the color flag
+                prochain_post_bleu = !prochain_post_bleu;
+            });
+        }
+
+
+
+
+    });
+}
+
+
 
     // Intégrations
     function ajoutLecteursEtIntegrations(container) {
@@ -1692,6 +1746,8 @@ function addNoelshackButton() {
                 ajoutColorPicker();
                 ajoutPuissancesIndices();
                 ajoutTab();
+                ajoutCitation();
+                ajoutCitationAuth();
 
                 ////////////////
                 //  FONCTIONS  |
@@ -1721,6 +1777,112 @@ function addNoelshackButton() {
                     textarea.selectionStart = selectionStart + baliseOuvrante.length;
                     textarea.selectionEnd = selectionEnd + baliseOuvrante.length;
                 }
+                function ajoutCitationAuth() {
+                    // Create the button
+                    let btnQuote = document.createElement('button');
+                    btnQuote.setAttribute('type', 'button');
+                    btnQuote.setAttribute('class', 'btn');
+                    btnQuote.setAttribute('tabindex', '-1');
+                    btnQuote.setAttribute('title', 'Ajouter une citation avec auteur');
+                    let icon = document.createElement('span');
+                    icon.setAttribute('class', 'glyphicon glyphicon-user');
+                    btnQuote.append(icon);
+                    // Add button to the editor
+                    bbcode_zone.appendChild(btnQuote);
+
+                    // EVENT - Button Quote
+                    btnQuote.onclick = function () {
+                        let selectionStart = textarea.selectionStart;
+                        let selectionEnd = textarea.selectionEnd;
+
+                        // Get the full content of the textarea
+                        let text = textarea.value;
+
+                        // Extract the selected text and surrounding text
+                        let before = text.substring(0, selectionStart);
+                        let selected = text.substring(selectionStart, selectionEnd);
+                        let after = text.substring(selectionEnd);
+
+                        if (selected === '') {
+                            // No selection: Insert a placeholder single-line quote
+                            let authorHeader = '> >>Auteur';
+                            let formattedQuote = `${authorHeader}\n> `;
+                            textarea.value = before + formattedQuote + after;
+                            // Place cursor inside the author placeholder
+                            textarea.focus();
+                            textarea.selectionStart = selectionStart + 4; // Position after `>> [`
+                            textarea.selectionEnd = textarea.selectionStart + 6; // Select `INSERT AUTHOR`
+                        } else {
+
+                            // Multi-line quote with author header
+                            let lines = selected.split('\n');
+                            let authorHeader = '> >>Auteur';
+                            let quotedLines = lines.map(line => '> ' + line).join('\n');
+                            let formattedQuote = `${authorHeader}\n${quotedLines}`;
+
+                            // Update the textarea value
+                            textarea.value = before + formattedQuote + after;
+
+                            // Place cursor inside the author placeholder
+                            textarea.focus();
+                            textarea.selectionStart = before.length + 4; // Position after `>> [`
+                            textarea.selectionEnd = textarea.selectionStart + 6; // Select `INSERT AUTHOR`
+
+                        }
+                    };
+                }
+
+                function ajoutCitation() {
+                    // Create the button
+                    let btnQuote = document.createElement('button');
+                    btnQuote.setAttribute('type', 'button');
+                    btnQuote.setAttribute('class', 'btn');
+                    btnQuote.setAttribute('tabindex', '-1');
+                    btnQuote.setAttribute('title', 'Ajouter une citation');
+                    let icon = document.createElement('span');
+                    icon.setAttribute('class', 'glyphicon glyphicon-chevron-right');
+                    btnQuote.append(icon);
+                    // Add button to the editor
+                    bbcode_zone.appendChild(btnQuote);
+
+                    // EVENT - Button Quote
+                    btnQuote.onclick = function () {
+                        let selectionStart = textarea.selectionStart;
+                        let selectionEnd = textarea.selectionEnd;
+
+                        // Get the full content of the textarea
+                        let text = textarea.value;
+
+                        // If there's a selection, get the selected text; otherwise, handle it as empty
+                        let before = text.substring(0, selectionStart);
+                        let selected = text.substring(selectionStart, selectionEnd);
+                        let after = text.substring(selectionEnd);
+
+                        // If no text is selected, insert `>` at the cursor position
+                        if (selected === '') {
+                            textarea.value = before + '>' + after;
+                            textarea.focus();
+                            textarea.selectionStart = selectionStart + 1;
+                            textarea.selectionEnd = textarea.selectionStart;
+                        } else {
+                            // Split the selected text into lines based on actual newlines (\n)
+                            let lines = selected.split('\n');
+
+                            // Add `>` at the start of each line
+                            let modified = lines.map(line => '>' + line).join('\n');
+
+                            // Update the textarea value
+                            textarea.value = before + modified + after;
+
+                            // Restore selection range
+                            textarea.focus();
+                            textarea.selectionStart = selectionStart;
+                            textarea.selectionEnd = selectionStart + modified.length;
+                        }
+                    };
+                }
+
+
 
                 // Tabulation
                 function ajoutTab() {
