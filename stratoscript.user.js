@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.8
-// @description  1.14.23.8 > Ajout de deux boutons citations dans option supplémentaires.
+// @version      1.14.23.9
+// @description  1.14.23.9 > Ajout de blacklist d'intégrations youtube et stickers (niveau 5 pour posts et citations
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -28,7 +28,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.8';
+    const version = '1.14.23.9';
 
     /* ==========================================================
     |                                                           |
@@ -448,7 +448,7 @@
         imgurDropzone.style.textAlign = 'center';
         imgurDropzone.style.margin = '0 auto';
         imgurDropzone.style.fontSize = "12px"
-        imgurDropzone.style.display = 'none'; 
+        imgurDropzone.style.display = 'none';
         imgurDropzone.innerHTML = 'Deposez une image ici <u>ou cliquez ici</u> (imgur)<br><sub>Poids max. : 20Mo (PNG, JPG) ; 200Mo (GIF, APNG)</sub>';
 
         // Create URL input
@@ -1073,16 +1073,17 @@ async function appliquer_blacklist_posts(page) {
     if (parametres["ss-rg-blacklist-forumeurs"] != null && parametres["ss-rg-blacklist-forumeurs"] !== '') {
         niveau_blocage = parametres["ss-rg-blacklist-forumeurs"];
     }
+
     // Couleur du post
     let prochain_post_bleu = true;
 
-     // Helper function: Check for blacklisted keywords in an element and its children
+    // Helper function: Check for blacklisted keywords in an element and its children
     function checkForBlacklistedKeywords(element, blacklist_kw) {
         let containsBlacklist = false;
 
         // Check the current element's text content
         blacklist_kw.forEach(function (blacklistedKeyword) {
-            if (element.textContent.includes(blacklistedKeyword)) {
+            if (element.textContent && element.textContent.includes(blacklistedKeyword)) {
                 containsBlacklist = true;
             }
         });
@@ -1112,82 +1113,146 @@ async function appliquer_blacklist_posts(page) {
     }
 
     // Traverse all messages in the topic
-    page.querySelectorAll(".topic-messages > article").forEach(function (article) {
-        console.log("Inspecting element:", article);
+    page.querySelectorAll(".topic-messages > article").forEach(article => {
+        console.log("Inspecting article:", article);
 
-        // Apply blacklist to pseudos
-        if (article.querySelector(".message-username")) {
-            let pseudo = article
-                .querySelector(".message-username a")
-                .textContent.replace(/(\r\n|\n|\r)/gm, "")
-                .trim();
-            blacklist_pseudos.forEach(function (e_blackist) {
-                if (pseudo === e_blackist.pseudo) {
-                    if (e_blackist.blocage_posts === 2) {
-                        let messageContent = article.querySelector(".message-content");
-                        if (messageContent) {
-                            messageContent.textContent = " [ Contenu blacklisté ] ";
-                        }
-                        article.setAttribute(
-                            "style",
-                            "background-color: rgba(247,24,24,.2)"
-                        );
-                    } else if (e_blackist.blocage_posts === 3) {
-                        article.innerHTML =
-                            '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
-                        article.setAttribute(
-                            "style",
-                            "background-color: rgba(247,24,24,.2)"
-                        );
-                    } else if (e_blackist.blocage_posts === 4) {
-                        article.remove();
-                        console.log("Removed element:", article);
-                        prochain_post_bleu = !prochain_post_bleu;
-                    }
-                }
-                console.log("Inspecting <article> element:", article);
-
-                // Look for .message-wrapper inside the <article>
-                let messageWrapper = article.querySelector(".message-wrapper");
-                if (!messageWrapper) {
-                    console.log("No .message-wrapper found in this <article>");
-                    return;
-                }
-
-                // Look for .message-content inside the .message-wrapper
-                let messageContent = messageWrapper.querySelector(".message-content");
-                if (!messageContent) {
-                    console.log("No .message-content found in this .message-wrapper");
-                    return;
-                }
-
-                // Check if .message-content contains blacklisted keywords or children with the board tag
-                if (checkForBlacklistedKeywords(messageContent, blacklist_kw)) {
-                    console.log("Blacklisted content found in .message-content:", messageContent);
-
-                    // Apply blacklist styling or modification
-                    messageContent.textContent = " [ Contenu blacklisté ] ";
-                    article.setAttribute("style", "background-color: rgba(247,24,24,.2)");
-                }
-
-                // Handle post colors after processing
-                if (prochain_post_bleu && !article.classList.contains("odd")) {
-                    article.classList.add("odd");
-                }
-                if (!prochain_post_bleu && article.classList.contains("odd")) {
-                    article.classList.remove("odd");
-                }
-
-                // Toggle the color flag
-                prochain_post_bleu = !prochain_post_bleu;
-            });
+        // Extract pseudo
+        const pseudoElement = article.querySelector(".message-username a");
+        if (!pseudoElement) {
+            console.log("No pseudo found in article.");
+            return;
         }
 
+        const pseudo = pseudoElement.textContent.trim();
+        console.log(`Extracted pseudo: ${pseudo}`);
 
+        blacklist_pseudos.forEach(e_blackist => {
+            if (pseudo.toLowerCase() === e_blackist.pseudo.toLowerCase()) {
+                console.log(`Matched pseudo: ${pseudo}, applying blocage_posts: ${e_blackist.blocage_posts}`);
 
+                // Apply specific blocking level
+                const messageContent = article.querySelector(".message-content");
+                if (e_blackist.blocage_posts == 2 && messageContent) {
+                    messageContent.textContent = " [ Contenu blacklisté ] ";
+                    article.style.setProperty("background-color", "rgba(247,24,24,.2)", "important");
+                    console.log("Modified content for pseudo:", pseudo);
+                } else if (e_blackist.blocage_posts == 3) {
+                    article.innerHTML =
+                        '<div style="margin:10px; text-align:center;width:100%"> [ Contenu blacklisté ] </div>';
+                    article.style.setProperty("background-color", "rgba(247,24,24,.2)", "important");
+                    console.log("Replaced article content for pseudo:", pseudo);
+                } else if (e_blackist.blocage_posts == 4) {
+                    article.remove();
+                    console.log("Removed article for pseudo:", pseudo);
+                    prochain_post_bleu = !prochain_post_bleu;
+                } else if (e_blackist.blocage_posts == 5 && messageContent) {
+                    // Replace <img> tags with links
+                    messageContent.querySelectorAll("img").forEach(img => {
+                        const link = document.createElement("a");
+                        link.href = img.src;
+                        link.textContent = `[${img.src}] `;
+                        img.replaceWith(link);
+                    });
+                    // Replace YouTube <iframe> embeds with links
+                    messageContent.querySelectorAll("iframe").forEach(iframe => {
+                        if (iframe.src.includes("youtube.com") || iframe.src.includes("youtu.be")) {
+                            const link = document.createElement("a");
+                            link.href = iframe.src;
+                            link.textContent = `[${iframe.src}] `;
+                            iframe.replaceWith(link);
+                        }
+                    });
+                    console.log("Modified content for pseudo:", pseudo);
+                }
+            }
+        });
 
+        // Check if .message-content contains blacklisted keywords or children with the board tag
+        const messageContent = article.querySelector(".message-content");
+        if (messageContent && checkForBlacklistedKeywords(messageContent, blacklist_kw)) {
+            console.log("Blacklisted content found in .message-content:", messageContent);
+
+            // Apply blacklist styling or modification
+            messageContent.textContent = " [ Contenu blacklisté ] ";
+            article.setAttribute("style", "background-color: rgba(247,24,24,.2)");
+        }
+
+        // Handle post colors after processing
+        if (prochain_post_bleu && !article.classList.contains("odd")) {
+            article.classList.add("odd");
+        }
+        if (!prochain_post_bleu && article.classList.contains("odd")) {
+            article.classList.remove("odd");
+        }
+
+        // Toggle the color flag
+        prochain_post_bleu = !prochain_post_bleu;
+    });
+    page.querySelectorAll( 'blockquote' ).forEach( function (quote ) {
+        // Check if the quote contains an author
+        const authorElement = quote.querySelector('.message-content-quote-author');
+        if (!authorElement) {
+            console.log("No author found in quote.");
+            return;
+        }
+
+        // Extract the author's pseudo
+        const pseudo = authorElement.textContent.trim();
+        console.log(`Processing quote by pseudo: ${pseudo}`);
+
+        // Check against the blacklist
+        blacklist_pseudos.forEach(function (e_blackist) {
+            if (pseudo === e_blackist.pseudo) {
+                console.log(`Matched blacklisted pseudo in quote: ${pseudo}, applying blocage_citations: ${e_blackist.blocage_citations}`);
+
+                // Apply the corresponding action based on blocage_citations
+                if (e_blackist.blocage_citations == 2) {
+                    // Keep the caption but replace the content
+                    const caption = quote.querySelector('.message-content-quote-caption');
+                    quote.innerHTML = ''; // Clear the current content
+                    if (caption) {
+                        quote.appendChild(caption); // Add the caption back
+                    }
+                    const div = document.createElement('div');
+                    div.textContent = '[ Contenu blacklisté ]';
+                    quote.appendChild(div);
+                    console.log(`Applied level 2 blocking to quote by pseudo: ${pseudo}`);
+                } else if (e_blackist.blocage_citations == 3) {
+                    // Replace the entire quote content with a blacklist message
+                    quote.textContent = '[ Contenu blacklisté ]';
+                    console.log(`Applied level 3 blocking to quote by pseudo: ${pseudo}`);
+                } else if (e_blackist.blocage_citations == 4) {
+                    // Remove the entire quote
+                    quote.remove();
+                    console.log(`Removed quote block for pseudo: ${pseudo}`);
+                } else if (e_blackist.blocage_citations == 5) {
+                    // Modify the content: Replace YouTube links and images with text
+                    const links = quote.querySelectorAll('a');
+                    const images = quote.querySelectorAll('img');
+
+                    // Replace YouTube links
+                    links.forEach(link => {
+                        if (link.href.includes('youtube.com') || link.href.includes('youtu.be')) {
+                            const replacement = document.createElement('span');
+                            replacement.textContent = `[${link.href}] `;
+                            link.replaceWith(replacement);
+                        }
+                    });
+
+                    // Replace images with their URLs as text
+                    images.forEach(img => {
+                        const replacement = document.createElement('span');
+                        replacement.textContent = `[${img.src}] `;
+                        img.replaceWith(replacement);
+                    });
+
+                    console.log(`Applied level 5 modifications to quote by pseudo: ${pseudo}`);
+                }
+            }
+        });
     });
 }
+
 
 
 
@@ -1238,7 +1303,7 @@ async function appliquer_blacklist_posts(page) {
                                     img.height = 150
                                 }
                             }
-                            if (parametres[ "sw-imgur-ex"] == true ) {
+                            if (parametres[ "sw-imgur-ex"] == true) {
                             if (img.width > 68 || img.height > 51 ) {
                                 img.width = 68; // Adjust the width as needed
                                 img.height = 51
@@ -2662,7 +2727,7 @@ async function appliquer_blacklist_posts(page) {
             } else {
                 bio_profil.parentNode.classList.add( 'hidden' );
             }
-            
+
             // Changement d'avatar
             let avatar = inputAvatar.files[ 0 ];
             if ( avatar ) {
@@ -2955,7 +3020,7 @@ async function appliquer_blacklist_posts(page) {
             input_posts.setAttribute( 'id', '#ss-bl-posts' );
             input_posts.setAttribute( 'class', 'ss-full-width' );
             input_posts.setAttribute( 'min', '1' );
-            input_posts.setAttribute( 'max', '4' );
+            input_posts.setAttribute( 'max', '5' );
             input_posts.value = e.blocage_posts;
             cell_posts.appendChild( input_posts );
             // Range citations
@@ -2964,7 +3029,7 @@ async function appliquer_blacklist_posts(page) {
             input_citations.setAttribute( 'id', '#ss-bl-citations' );
             input_citations.setAttribute( 'class', 'ss-full-width' );
             input_citations.setAttribute( 'min', '1' );
-            input_citations.setAttribute( 'max', '4' );
+            input_citations.setAttribute( 'max', '5' );
             input_citations.value = e.blocage_citations;
             cell_citations.appendChild( input_citations );
             // Events - Modif niveau de blocage
