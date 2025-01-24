@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stratoscript
-// @version      1.14.23.9
-// @description  1.14.23.9 > Ajout de blacklist d'intégrations youtube et stickers (niveau 5 pour posts et citations
+// @version      1.14.23.10
+// @description  1.14.23.10 > Hotfix remplacement video yt ds citations
 // @author       Stratosphere, StayNoided/TabbyGarf
 // @match        https://avenoel.org/*
 // @icon         https://tabbygarf.club/files/themes/stratoscript/str.png
@@ -28,7 +28,7 @@
     var litter = false;
     let ssDatabase;
     const pseudoimgTag = document.querySelector('.navbar-user-avatar');
-    const version = '1.14.23.9';
+    const version = '1.14.23.10';
 
     /* ==========================================================
     |                                                           |
@@ -1227,15 +1227,15 @@ async function appliquer_blacklist_posts(page) {
                     console.log(`Removed quote block for pseudo: ${pseudo}`);
                 } else if (e_blackist.blocage_citations == 5) {
                     // Modify the content: Replace YouTube links and images with text
-                    const links = quote.querySelectorAll('a');
+
                     const images = quote.querySelectorAll('img');
 
-                    // Replace YouTube links
-                    links.forEach(link => {
-                        if (link.href.includes('youtube.com') || link.href.includes('youtu.be')) {
-                            const replacement = document.createElement('span');
-                            replacement.textContent = `[${link.href}] `;
-                            link.replaceWith(replacement);
+                    quote.querySelectorAll("iframe").forEach(iframe => {
+                        if (iframe.src.includes("youtube.com") || iframe.src.includes("youtu.be")) {
+                            const link = document.createElement("a");
+                            link.href = iframe.src;
+                            link.textContent = `[${iframe.src}] `;
+                            iframe.replaceWith(link);
                         }
                     });
 
