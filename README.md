@@ -11,6 +11,7 @@ Pour mettre vos icones custom (Stylus est requis): [Changeur de logos Stratoscri
 > Ajout du upload Catbox, avec embed des fichiers catbox/Litterbox!
 
 ### Installation sur PC
+> [Tuto vidéo](https://www.youtube.com/watch?v=29mIaksZ2jM)
 > Installez l'extension Tampermonkey sur votre navigateur
 > ( pas Greasemonkey, certains clés ont eu des problèmes avec )
 > 
